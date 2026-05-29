@@ -2,7 +2,7 @@
 
 AI 相关工具与 [Agent Skills](https://skills.sh/) 集合。
 
-## 安装
+## Skills 安装
 
 ### 让 AI 帮你装（推荐）
 
@@ -10,11 +10,11 @@ AI 相关工具与 [Agent Skills](https://skills.sh/) 集合。
 
 **安装单个 skill（如 dify-manage）：**
 
-> 请从 GitHub 仓库 https://github.com/young-tim/AI-Tools 安装 dify-manage 这个 skill，装到我当前用的 AI 编程工具里。
+> 请从 GitHub 仓库 [https://github.com/young-tim/AI-Tools](https://github.com/young-tim/AI-Tools) 安装 dify-manage 这个 skill，装到我当前用的 AI 编程工具里。
 
 **安装全部 skill：**
 
-> 请安装 https://github.com/young-tim/AI-Tools 仓库里的全部 skill。
+> 请安装 [https://github.com/young-tim/AI-Tools](https://github.com/young-tim/AI-Tools) 仓库里的全部 skill。
 
 ### 命令行安装
 
@@ -47,11 +47,13 @@ npx skills add <owner>/AI-Tools --skill dify-manage --agent '*' -g -y
 npx skills add ./skills/dify-manage -g -y --agent cursor
 ```
 
-## Skills
+## Skills 清单
 
-| Skill | 说明 |
-|-------|------|
+
+| Skill                                | 说明                        |
+| ------------------------------------ | ------------------------- |
 | [dify-manage](./skills/dify-manage/) | Dify DSL 拉取/编辑/部署；文件缓存与上传 |
+
 
 ## 仓库结构
 
@@ -66,4 +68,3 @@ AI-Tools/
 ```
 
 新增 skill：在 `skills/` 下复制 `dify-manage` 骨架，改 `SKILL.md` frontmatter 即可。
-
