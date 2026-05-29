@@ -6,10 +6,10 @@ AI 相关工具与 [Agent Skills](https://skills.sh/) 集合。
 
 ```bash
 # 列出本仓库所有 skill
-npx skills add <owner>/AI-Tools --list
+npx skills add young-tim/AI-Tools --list
 
 # 安装指定 skill（Cursor 用户级）
-npx skills add <owner>/AI-Tools --skill dify-manage -g -y --agent cursor
+npx skills add young-tim/AI-Tools --skill dify-manage -g -y --agent cursor
 
 # 本地开发
 npx skills add ./skills/dify-manage -g -y --agent cursor
