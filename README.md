@@ -4,6 +4,20 @@ AI 相关工具与 [Agent Skills](https://skills.sh/) 集合。
 
 ## 安装
 
+### 让 AI 帮你装（推荐）
+
+复制下面一句话发给当前使用的 AI 编程助手即可，无需自己选 Agent 或记命令：
+
+**安装单个 skill（如 dify-manage）：**
+
+> 请从 GitHub 仓库 https://github.com/young-tim/AI-Tools 安装 dify-manage 这个 skill，装到我当前用的 AI 编程工具里。
+
+**安装全部 skill：**
+
+> 请安装 https://github.com/young-tim/AI-Tools 仓库里的全部 skill。
+
+### 命令行安装
+
 `<owner>` 替换为 GitHub 用户名，例如 `young-tim`。`-g` 表示安装到用户目录（如 `~/.cursor/skills/`），省略则安装到当前项目。
 
 ```bash
