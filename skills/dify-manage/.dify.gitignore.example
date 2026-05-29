@@ -1,0 +1,5 @@
+# 复制到业务项目 .dify/.gitignore 或根 .gitignore
+
+session.json
+*-remote.yml
+cache/

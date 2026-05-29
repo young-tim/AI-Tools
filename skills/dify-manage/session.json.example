@@ -1,0 +1,10 @@
+{
+  "console_url": "https://your-dify-host.com",
+  "access_token": "",
+  "csrf_token": "",
+  "refresh_token": "",
+  "last_login_at": null,
+  "last_refresh_at": null,
+  "access_token_expires_at": null,
+  "last_event": "login"
+}
