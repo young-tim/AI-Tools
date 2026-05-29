@@ -35,4 +35,3 @@ AI-Tools/
 
 新增 skill：在 `skills/` 下复制 `dify-manage` 骨架，改 `SKILL.md` frontmatter 即可。
 
-业务项目数据（`.dify/`、`.env`）不放在本仓库，由使用方项目维护。
