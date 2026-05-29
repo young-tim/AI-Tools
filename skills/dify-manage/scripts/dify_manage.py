@@ -70,6 +70,61 @@ def discover_dify_project_root(start: Path | None = None) -> Path | None:
     return None
 
 
+def resolve_project_root(start: Path | None = None) -> Path:
+    """业务项目根：已有 .dify/ → 含 .env 的目录 → cwd。"""
+    found = discover_dify_project_root(start)
+    if found:
+        return found
+    cwd = (start or Path.cwd()).resolve()
+    for base in [cwd, *cwd.parents]:
+        if (base / ".env").is_file():
+            return base
+        if base == base.parent and base != cwd:
+            break
+    return cwd
+
+
+def ensure_dify_dir() -> Path:
+    """确保 {project_root}/.dify/ 存在并更新全局路径缓存。"""
+    global DIFY_PROJECT_ROOT, DIFY_DIR
+    root = resolve_project_root()
+    dify_dir = (root / ".dify").resolve()
+    dify_dir.mkdir(parents=True, exist_ok=True)
+    DIFY_PROJECT_ROOT = root
+    DIFY_DIR = dify_dir
+    return dify_dir
+
+
+def canonical_session_path() -> Path:
+    """标准 session 写入路径（即使 .dify/ 尚未初始化也会指向此处）。"""
+    return (resolve_project_root() / ".dify" / SESSION_FILENAME).resolve()
+
+
+def _legacy_session_candidates() -> list[Path]:
+    """只读：按优先级列出可能存在的 legacy session 文件。"""
+    candidates: list[Path] = []
+    dify_dir = DIFY_DIR or discover_dify_dir()
+    if dify_dir:
+        candidates.extend(
+            [
+                (dify_dir / LEGACY_SESSION_PLAIN).resolve(),
+                (dify_dir / LEGACY_SESSION_FILENAME).resolve(),
+            ]
+        )
+    root = DIFY_PROJECT_ROOT or resolve_project_root()
+    candidates.append((root / LEGACY_SESSION_FILENAME).resolve())
+    if ENV_LOADED_FROM:
+        candidates.append((ENV_LOADED_FROM.parent / LEGACY_SESSION_FILENAME).resolve())
+    # 去重，保持顺序
+    seen: set[Path] = set()
+    unique: list[Path] = []
+    for path in candidates:
+        if path not in seen:
+            seen.add(path)
+            unique.append(path)
+    return unique
+
+
 def discover_dify_dir() -> Path | None:
     root = discover_dify_project_root()
     return (root / ".dify").resolve() if root else None
@@ -259,23 +314,13 @@ def migrate_legacy_session() -> None:
     target = (dify_dir / SESSION_FILENAME).resolve()
     if target.is_file():
         return
-    for legacy in (
-        dify_dir / LEGACY_SESSION_PLAIN,
-        dify_dir / LEGACY_SESSION_FILENAME,
-    ):
+    for legacy in _legacy_session_candidates():
         if legacy.is_file():
             data = read_session_file(legacy)
             if data and _session_has_tokens(data):
                 save_session_file(target, data)
                 print(f"Note: migrated session -> {target}", file=sys.stderr)
             return
-    if ENV_LOADED_FROM:
-        legacy = ENV_LOADED_FROM.parent / LEGACY_SESSION_FILENAME
-        if legacy.is_file() and not target.is_file():
-            data = read_session_file(legacy)
-            if data and _session_has_tokens(data):
-                save_session_file(target, data)
-                print(f"Note: migrated session -> {target}", file=sys.stderr)
 
 
 def apps_meta_path(app_id: str) -> Path:
@@ -683,7 +728,8 @@ def jwt_expires_at_iso(access_token: str) -> str | None:
 def resolve_session_path() -> Path:
     """
     Session 路径优先级：
-    DIFY_SESSION_FILE > .dify/session.json > legacy .dify/session / .dify.session
+    DIFY_SESSION_FILE > .dify/session.json > legacy（只读回退）
+    写入时始终使用 .dify/session.json（见 persist_session / ensure_dify_dir）。
     """
     explicit = os.environ.get("DIFY_SESSION_FILE", "").strip()
     if explicit:
@@ -694,31 +740,15 @@ def resolve_session_path() -> Path:
         new_path = (dify_dir / SESSION_FILENAME).resolve()
         if new_path.is_file():
             return new_path
-        legacy_plain = (dify_dir / LEGACY_SESSION_PLAIN).resolve()
-        if legacy_plain.is_file():
-            return legacy_plain
-        legacy_in_dify = (dify_dir / LEGACY_SESSION_FILENAME).resolve()
-        if legacy_in_dify.is_file():
-            return legacy_in_dify
+        for legacy in _legacy_session_candidates():
+            if legacy.is_file():
+                return legacy
         return new_path
 
-    if ENV_LOADED_FROM:
-        legacy = (ENV_LOADED_FROM.parent / LEGACY_SESSION_FILENAME).resolve()
+    for legacy in _legacy_session_candidates():
         if legacy.is_file():
             return legacy
-        return (ENV_LOADED_FROM.parent / LEGACY_SESSION_FILENAME).resolve()
-
-    env_path = discover_env_file()
-    if env_path:
-        legacy = (env_path.parent / LEGACY_SESSION_FILENAME).resolve()
-        if legacy.is_file():
-            return legacy
-        root = discover_dify_project_root(env_path.parent)
-        if root:
-            return (root / ".dify" / SESSION_FILENAME).resolve()
-        return legacy
-
-    return (Path.cwd().resolve() / ".dify" / SESSION_FILENAME)
+    return canonical_session_path()
 
 
 def read_session_file(path: Path) -> dict[str, Any] | None:
@@ -904,12 +934,15 @@ class DifySession:
         if not access or not csrf:
             raise SystemExit("No tokens to persist")
 
-        dify_dir = DIFY_DIR or discover_dify_dir()
-        if dify_dir:
-            path = (dify_dir / SESSION_FILENAME).resolve()
-        else:
-            path = resolve_session_path()
-        existing = read_session_file(path) or read_session_file(resolve_session_path()) or {}
+        dify_dir = ensure_dify_dir()
+        path = (dify_dir / SESSION_FILENAME).resolve()
+        existing = read_session_file(path)
+        if not existing:
+            for legacy in _legacy_session_candidates():
+                existing = read_session_file(legacy)
+                if existing:
+                    break
+        existing = existing or {}
         now = _utc_now_iso()
         data: dict[str, Any] = {
             **existing,
@@ -1233,8 +1266,8 @@ def cmd_apps_list(args: argparse.Namespace) -> None:
 
 
 def cmd_init(_args: argparse.Namespace) -> None:
-    root = discover_dify_project_root() or Path.cwd().resolve()
-    dify_dir = root / ".dify"
+    root = resolve_project_root()
+    dify_dir = ensure_dify_dir()
     for sub in ("dsl", "apps", "fixtures", "snippets", "docs", "cache/downloads"):
         (dify_dir / sub).mkdir(parents=True, exist_ok=True)
     mp = dify_dir / MANIFEST_FILENAME
@@ -1248,7 +1281,8 @@ def cmd_init(_args: argparse.Namespace) -> None:
         )
     global DIFY_PROJECT_ROOT, DIFY_DIR
     DIFY_PROJECT_ROOT = root
-    DIFY_DIR = dify_dir.resolve()
+    DIFY_DIR = dify_dir
+    migrate_legacy_session()
     print(f"Initialized {dify_dir}")
     print(f"  manifest: {mp}")
     print(f"  dsl:      {dify_dir / 'dsl'}")

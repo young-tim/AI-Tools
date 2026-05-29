@@ -10,14 +10,33 @@ description: >-
 
 ## CLI
 
-**SKILL_ROOT** = 本 `SKILL.md` 所在目录。
+**SKILL_ROOT** = 本 `SKILL.md` 所在目录（安装后通常在 `~/.cursor/skills/dify-manage/`）。
 
 ```bash
-python3 "{SKILL_ROOT}/scripts/dify_manage.py"
-# 或："{SKILL_ROOT}/scripts/dify"
+# 基命令（后续子命令均接在此后）
+python3 "{SKILL_ROOT}/scripts/dify_manage.py" <子命令> [选项]
+# 或："{SKILL_ROOT}/scripts/dify" <子命令> [选项]
 ```
 
 业务项目内可自建 `bin/dify` 包装，启动时 `cd` 到项目根以发现 `.env` / `.dify/`。
+
+## 首次使用（业务项目根目录）
+
+先 `cd` 到含 `.env` 的业务仓库根，再执行：
+
+```bash
+# 1. 配置 .env（见 skill 内 .env.example）
+# 2. 初始化 .dify/ 骨架（dsl、cache、manifest 等）
+python3 "{SKILL_ROOT}/scripts/dify_manage.py" init
+
+# 3. 需要 Console 操作时（须用户确认）
+python3 "{SKILL_ROOT}/scripts/dify_manage.py" login
+
+# 4. 列出应用
+python3 "{SKILL_ROOT}/scripts/dify_manage.py" apps
+```
+
+`login` 也会自动创建 `.dify/` 并写入 `session.json`，但不会建好 `dsl/`、`cache/` 等子目录；**首次务必先 `init`**。
 
 ## 项目布局（使用方仓库，非本 skill）
 
@@ -45,10 +64,12 @@ python3 "{SKILL_ROOT}/scripts/dify_manage.py"
 ## DSL 工作流
 
 ```bash
-init → apps → pull --app-id <id>
+python3 "{SKILL_ROOT}/scripts/dify_manage.py" init
+python3 "{SKILL_ROOT}/scripts/dify_manage.py" apps
+python3 "{SKILL_ROOT}/scripts/dify_manage.py" pull --app-id <id>
 # 编辑 .dify/dsl/<id>/working.yml
-dsl diff --app-id <id>
-deploy --app-id <id>
+python3 "{SKILL_ROOT}/scripts/dify_manage.py" dsl diff --app-id <id>
+python3 "{SKILL_ROOT}/scripts/dify_manage.py" deploy --app-id <id>
 ```
 
 维护：`dsl refresh`、`dsl reset`、`dsl prune --keep 3`、`pull --sync-working`。
@@ -70,12 +91,13 @@ run --api-key app-xxx --fixtures .dify/fixtures/<id>/smoke.json
 
 ## Agent 清单
 
-1. 未指定 app → `apps`
-2. 改 DSL 前 `pull`；编辑 `working.yml`
-3. 部署前 `dsl diff`；异常用 `dsl status --check-remote`
-4. 外链：`cache download` → `files upload` 或 `run --file-url`
-5. 敏感操作须确认
-6. 无用户要求不 `login`
+1. 首次使用：在业务项目根执行 `init`（见上文「首次使用」完整命令）
+2. 未指定 app → `apps`
+3. 改 DSL 前 `pull`；编辑 `working.yml`
+4. 部署前 `dsl diff`；异常用 `dsl status --check-remote`
+5. 外链：`cache download` → `files upload` 或 `run --file-url`
+6. 敏感操作须确认
+7. 无用户要求不 `login`
 
 ## 参考
 
