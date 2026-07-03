@@ -18,7 +18,7 @@ AI 相关工具与 [Agent Skills](https://skills.sh/) 集合。
 
 ### 命令行安装
 
-`<owner>` 替换为 GitHub 用户名，例如 `young-tim`。`-g` 表示安装到用户目录（如 `~/.cursor/skills/`），省略则安装到当前项目。
+`<owner>` 替换为 GitHub 用户名，例如 `young-tim`。`-g` 表示安装到用户目录（如 `~/.agents/skills/`），省略则安装到当前项目。
 
 ```bash
 # 列出本仓库所有 skill
@@ -52,6 +52,7 @@ npx skills add ./skills/dify-manage -g -y --agent cursor
 
 | Skill                                | 说明                        |
 | ------------------------------------ | ------------------------- |
+| [decksmith](./skills/decksmith/)     | AI 演示稿编译器：通过 Slide IR 生成企业级幻灯片，内置主题/模板/组件，导出 HTML/PDF/可编辑 PPTX |
 | [dify-manage](./skills/dify-manage/) | Dify DSL 拉取/编辑/部署；文件缓存与上传 |
 
 
@@ -59,12 +60,18 @@ npx skills add ./skills/dify-manage -g -y --agent cursor
 
 ```text
 AI-Tools/
+├── AGENTS.md              # AI Agent 创建/维护 Skill 的规范指南
 ├── README.md
 └── skills/
     └── <skill-name>/
-        ├── SKILL.md
-        ├── README.md
-        └── scripts/ ...
+        ├── SKILL.md       # Skill 核心指令（必需）
+        ├── README.md      # Skill 使用说明（可选）
+        ├── scripts/       # 可执行脚本（可选）
+        ├── schema/        # JSON Schema（可选）
+        ├── themes/        # 主题配置（可选）
+        ├── templates/     # 模板配置（可选）
+        ├── components/    # 组件定义（可选）
+        └── examples/      # 示例文件（可选）
 ```
 
-新增 skill：在 `skills/` 下复制 `dify-manage` 骨架，改 `SKILL.md` frontmatter 即可。
+新增/修改 Skill 请阅读 [AGENTS.md](./AGENTS.md) 中的规范。
