@@ -1,6 +1,11 @@
 ---
 name: decksmith
-description: "AI Presentation Compiler: generates enterprise slides via Slide IR, exports HTML/PDF/editable PPTX. Invoke when creating presentations, PPT, decks, proposals, reports, or reviews."
+description: >-
+  AI Presentation Compiler: generates enterprise slides, PPT, decks, proposals, reports,
+  and reviews via Slide IR (structured JSON), with built-in themes, templates, and components.
+  Exports high-fidelity HTML preview, PDF for delivery, and editable PPTX. Use when creating
+  presentations, slides, pitch decks, proposals, project reports, meeting slides, or any
+  slide-based deliverable. 当用户需要制作演示稿、幻灯片、PPT、方案、报告、汇报、提案时触发。
 ---
 
 # DeckSmith — AI Presentation Compiler
