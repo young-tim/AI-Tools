@@ -1,0 +1,518 @@
+{
+  "version": "1.0",
+  "meta": {
+    "title": "企业AI能力建设咨询方案",
+    "author": "咨询团队",
+    "language": "zh-CN",
+    "ratio": "16:9",
+    "createdAt": "2026-07-04"
+  },
+  "theme": "enterprise-light",
+  "template": "business-consulting",
+  "settings": {
+    "canvasWidth": 1920,
+    "canvasHeight": 1080,
+    "pptLayout": "LAYOUT_WIDE",
+    "editablePriority": "hybrid",
+    "exportHtml": true,
+    "exportPdf": true,
+    "exportPptx": true
+  },
+  "assets": [],
+  "slides": [
+    {
+      "id": "slide-01",
+      "type": "cover",
+      "layout": "cover",
+      "title": "企业AI能力建设咨询方案",
+      "subtitle": "从战略规划到落地实施的端到端转型路径",
+      "client": "[Client Name]",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "cover-title",
+          "type": "title",
+          "content": "企业AI能力建设咨询方案",
+          "variant": "cover-main"
+        },
+        {
+          "id": "cover-subtitle",
+          "type": "subtitle",
+          "content": "从战略规划到落地实施的端到端转型路径",
+          "variant": "cover-sub"
+        },
+        {
+          "id": "cover-client",
+          "type": "body-text",
+          "content": "呈交：[Client Name]",
+          "variant": "cover-meta"
+        },
+        {
+          "id": "cover-date",
+          "type": "body-text",
+          "content": "2026年7月",
+          "variant": "cover-meta"
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "01"
+      },
+      "qa": {
+        "maxTextDensity": "low",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-02",
+      "type": "agenda",
+      "layout": "agenda",
+      "title": "目录",
+      "subtitle": "本次汇报的核心议题",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "agenda-list",
+          "type": "bullet-list",
+          "variant": "agenda-numbered",
+          "items": [
+            "核心结论与关键洞察",
+            "项目背景与关键问题",
+            "现状诊断与差距分析",
+            "解决方案框架",
+            "核心能力模块",
+            "实施路径规划",
+            "预期收益与价值",
+            "下一步行动建议"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "02"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-03",
+      "type": "single-message",
+      "layout": "single-message",
+      "title": "AI转型的核心不在于技术堆砌，而在于构建可复用的业务能力",
+      "subtitle": "Executive Summary | 核心结论",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "executive-summary",
+          "type": "callout",
+          "variant": "key-message",
+          "content": "我们建议[Client Name]采取「场景切入-能力沉淀-组织适配」三步走策略，在18个月内完成从单点AI应用到企业级AI能力平台的跃迁，预计可带来30%-50%的核心流程效率提升。"
+        },
+        {
+          "id": "key-points",
+          "type": "bullet-list",
+          "variant": "key-points",
+          "items": [
+            "优先选择3-5个高价值业务场景快速验证，6个月内实现首期ROI",
+            "构建统一的AI能力中台，避免重复建设和技术债务",
+            "同步推进组织能力升级，建立AI治理和人才培养体系",
+            "分阶段投入，首期聚焦速赢场景验证价值，后续扩大规模"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "03"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-04",
+      "type": "two-column",
+      "layout": "two-column",
+      "title": "外部环境变化与内部效率瓶颈共同驱动AI转型迫在眉睫",
+      "subtitle": "项目背景与关键问题",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "left-column-title",
+          "type": "title",
+          "content": "外部驱动因素",
+          "variant": "column-title"
+        },
+        {
+          "id": "left-column-content",
+          "type": "bullet-list",
+          "variant": "column-list",
+          "items": [
+            "行业领先者已大规模应用AI，效率差距持续拉大",
+            "客户期望实时响应和个性化服务体验",
+            "人才成本持续上升，传统人力扩张模式难以为继",
+            "监管对数据处理和合规要求不断提高"
+          ]
+        },
+        {
+          "id": "right-column-title",
+          "type": "title",
+          "content": "内部关键挑战",
+          "variant": "column-title"
+        },
+        {
+          "id": "right-column-content",
+          "type": "bullet-list",
+          "variant": "column-list",
+          "items": [
+            "现有业务流程高度依赖人工经验，难以规模化复制",
+            "数据孤岛严重，跨部门数据打通和治理不足",
+            "各部门独立探索AI应用，缺乏统一规划和标准",
+            "AI人才储备不足，缺乏系统化的培养和引入机制"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "04"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-05",
+      "type": "comparison",
+      "layout": "comparison",
+      "title": "从人工经验驱动转向AI协同模式，实现质效双升",
+      "subtitle": "现状诊断 | 传统模式 vs AI协同模式",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "comparison-left",
+          "type": "comparison-panel",
+          "variant": "before",
+          "title": "传统模式",
+          "items": [
+            "决策依赖个别专家经验，传承困难",
+            "流程串行处理，单节点瓶颈影响整体",
+            "数据事后分析，响应滞后",
+            "质量依赖人工抽检，漏检率高",
+            "能力沉淀在个人，组织难以复用"
+          ]
+        },
+        {
+          "id": "comparison-right",
+          "type": "comparison-panel",
+          "variant": "after",
+          "title": "AI协同模式",
+          "items": [
+            "AI辅助决策，经验转化为模型规则",
+            "流程智能分流，高并发并行处理",
+            "实时数据洞察，事前预警干预",
+            "AI全量质检+人工复核，准确率提升",
+            "能力沉淀在平台，组织可规模化复用"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "05"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-06",
+      "type": "architecture",
+      "layout": "architecture",
+      "title": "构建「业务场景-能力中台-基础设施」三层架构体系",
+      "subtitle": "解决方案框架",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "arch-layer-1",
+          "type": "architecture-layer",
+          "variant": "top",
+          "title": "业务应用层",
+          "items": ["智能客服", "智能风控", "智能营销", "智能运营", "智能研发"]
+        },
+        {
+          "id": "arch-layer-2",
+          "type": "architecture-layer",
+          "variant": "middle",
+          "title": "AI能力中台",
+          "items": ["模型服务", "知识管理", "数据治理", "流程编排", "AI治理"]
+        },
+        {
+          "id": "arch-layer-3",
+          "type": "architecture-layer",
+          "variant": "bottom",
+          "title": "基础设施层",
+          "items": ["算力资源", "云原生平台", "安全合规", "DevOps工具链"]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "06"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-07",
+      "type": "three-card",
+      "layout": "three-card",
+      "title": "三大核心能力支撑企业AI规模化应用",
+      "subtitle": "核心能力模块",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "card-1",
+          "type": "card",
+          "variant": "capability",
+          "title": "智能决策能力",
+          "icon": "decision",
+          "items": [
+            "多模态数据融合分析",
+            "业务规则与模型双引擎",
+            "实时决策与推荐",
+            "可解释性决策追溯"
+          ]
+        },
+        {
+          "id": "card-2",
+          "type": "card",
+          "variant": "capability",
+          "title": "知识工程能力",
+          "icon": "knowledge",
+          "items": [
+            "企业知识图谱构建",
+            "文档智能解析与理解",
+            "知识自动更新与演化",
+            "智能检索与问答"
+          ]
+        },
+        {
+          "id": "card-3",
+          "type": "card",
+          "variant": "capability",
+          "title": "流程自动化能力",
+          "icon": "automation",
+          "items": [
+            "跨系统流程编排",
+            "智能任务分配",
+            "异常自动处理",
+            "流程持续优化"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "07"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-08",
+      "type": "process-flow",
+      "layout": "process-flow",
+      "title": "三阶段实施路径，从速赢验证到规模化复制",
+      "subtitle": "实施路径规划 | 18个月转型周期",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "phase-1",
+          "type": "process-node",
+          "variant": "phase",
+          "phase": "第一阶段",
+          "duration": "0-6个月",
+          "title": "速赢验证",
+          "items": [
+            "选择3-5个高价值场景POC",
+            "搭建基础AI平台雏形",
+            "组建核心转型团队",
+            "验证AI价值，建立信心"
+          ]
+        },
+        {
+          "id": "phase-2",
+          "type": "process-node",
+          "variant": "phase",
+          "phase": "第二阶段",
+          "duration": "6-12个月",
+          "title": "能力建设",
+          "items": [
+            "完善AI中台核心能力",
+            "扩展至10+业务场景",
+            "建立AI治理体系",
+            "培养内部AI人才队伍"
+          ]
+        },
+        {
+          "id": "phase-3",
+          "type": "process-node",
+          "variant": "phase",
+          "phase": "第三阶段",
+          "duration": "12-18个月",
+          "title": "规模复制",
+          "items": [
+            "全业务线推广AI应用",
+            "形成自服务AI能力",
+            "AI驱动业务创新",
+            "持续优化迭代"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "08"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-09",
+      "type": "kpi-dashboard",
+      "layout": "kpi-dashboard",
+      "title": "预计18个月内实现显著的业务价值回报",
+      "subtitle": "预期收益",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "kpi-1",
+          "type": "metric-card",
+          "variant": "primary",
+          "label": "核心流程效率提升",
+          "value": "30-50%",
+          "trend": "up",
+          "description": "自动化处理常规任务，释放人力聚焦高价值工作"
+        },
+        {
+          "id": "kpi-2",
+          "type": "metric-card",
+          "variant": "primary",
+          "label": "运营成本降低",
+          "value": "20-30%",
+          "trend": "down",
+          "description": "减少重复劳动和人为错误，降低单位业务处理成本"
+        },
+        {
+          "id": "kpi-3",
+          "type": "metric-card",
+          "variant": "secondary",
+          "label": "客户满意度提升",
+          "value": "25%+",
+          "trend": "up",
+          "description": "实时响应和个性化服务，显著改善客户体验"
+        },
+        {
+          "id": "kpi-4",
+          "type": "metric-card",
+          "variant": "secondary",
+          "label": "决策响应速度",
+          "value": "10x",
+          "trend": "up",
+          "description": "从事后分析转向实时洞察，快速响应市场变化"
+        },
+        {
+          "id": "kpi-5",
+          "type": "metric-card",
+          "variant": "tertiary",
+          "label": "AI人才储备",
+          "value": "50+",
+          "trend": "up",
+          "description": "培养内部AI产品、算法、应用人才梯队"
+        },
+        {
+          "id": "kpi-6",
+          "type": "metric-card",
+          "variant": "tertiary",
+          "label": "投资回收期",
+          "value": "12-15个月",
+          "trend": "neutral",
+          "description": "首期速赢场景可在6-9个月内实现正向ROI"
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "09"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-10",
+      "type": "summary",
+      "layout": "summary",
+      "title": "建议立即启动AI转型规划，把握先发优势",
+      "subtitle": "下一步行动",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "action-items",
+          "type": "bullet-list",
+          "variant": "action-items",
+          "items": [
+            "第1-2周：双方成立联合项目组，明确项目章程和沟通机制",
+            "第3-4周：开展深度业务调研，完成场景优先级评估",
+            "第5-8周：制定详细实施方案，确定首期速赢场景",
+            "第9周起：启动首期POC项目，快速验证价值"
+          ]
+        },
+        {
+          "id": "closing-callout",
+          "type": "callout",
+          "variant": "closing",
+          "content": "我们期待与[Client Name]携手，共同推进AI能力建设，打造行业智能化转型标杆。"
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "10"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-11",
+      "type": "qa",
+      "layout": "qa",
+      "title": "Q&A",
+      "subtitle": "感谢聆听，欢迎交流",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "qa-contact",
+          "type": "body-text",
+          "content": "如有任何问题，请随时联系我们",
+          "variant": "qa-text"
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "11"
+      },
+      "qa": {
+        "maxTextDensity": "low",
+        "allowRasterFallback": true
+      }
+    }
+  ]
+}

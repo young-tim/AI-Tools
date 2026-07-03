@@ -1,0 +1,117 @@
+{
+  "id": "sales-deck",
+  "name": "销售提案模板",
+  "version": "1.0.0",
+  "description": "适用于客户提案、售前演示、商务方案等场景，强调客户价值、信任建立与商业说服力",
+  "recommendedThemes": ["business-blue", "default-light", "enterprise-light"],
+  "defaultTheme": "business-blue",
+  "contentDensity": "medium",
+  "slideStructure": [
+    {
+      "type": "cover",
+      "layout": "cover",
+      "required": true,
+      "title": "封面",
+      "description": "方案标题、客户名称、提交方、日期"
+    },
+    {
+      "type": "agenda",
+      "layout": "agenda",
+      "required": true,
+      "title": "目录",
+      "description": "提案议程与内容导航"
+    },
+    {
+      "type": "image-text",
+      "layout": "image-text",
+      "required": true,
+      "title": "公司介绍",
+      "description": "公司概况、核心优势、行业地位"
+    },
+    {
+      "type": "single-message",
+      "layout": "single-message",
+      "required": true,
+      "title": "客户痛点",
+      "description": "聚焦客户面临的核心挑战与业务痛点"
+    },
+    {
+      "type": "two-column",
+      "layout": "two-column",
+      "required": true,
+      "title": "理解与洞察",
+      "description": "对客户业务的深度理解、行业洞察与需求分析"
+    },
+    {
+      "type": "architecture",
+      "layout": "architecture",
+      "required": true,
+      "title": "解决方案",
+      "description": "整体解决方案框架、核心思路与价值主张"
+    },
+    {
+      "type": "three-card",
+      "layout": "three-card",
+      "required": true,
+      "title": "产品与服务",
+      "description": "核心产品/服务模块、功能亮点与交付内容"
+    },
+    {
+      "type": "two-column",
+      "layout": "two-column",
+      "required": true,
+      "title": "成功案例",
+      "description": "同行业标杆案例、实施效果与客户成果"
+    },
+    {
+      "type": "quote",
+      "layout": "single-message",
+      "required": false,
+      "title": "客户证言",
+      "description": "客户评价、推荐语、信任背书"
+    },
+    {
+      "type": "process-flow",
+      "layout": "process-flow",
+      "required": true,
+      "title": "实施计划",
+      "description": "项目实施方法论、阶段划分、交付 timeline"
+    },
+    {
+      "type": "kpi-dashboard",
+      "layout": "kpi-dashboard",
+      "required": true,
+      "title": "投资回报",
+      "description": "ROI分析、价值量化、预期收益指标"
+    },
+    {
+      "type": "table-report",
+      "layout": "table-report",
+      "required": false,
+      "title": "合作模式与报价",
+      "description": "合作方案、报价体系、商务条款说明"
+    },
+    {
+      "type": "summary",
+      "layout": "summary",
+      "required": true,
+      "title": "下一步",
+      "description": "行动建议、后续计划、决策事项"
+    },
+    {
+      "type": "qa",
+      "layout": "qa",
+      "required": true,
+      "title": "Q&A",
+      "description": "问答交流页"
+    }
+  ],
+  "defaultComponents": ["title", "subtitle", "body-text", "bullet-list", "metric-card", "image", "icon", "comparison-panel", "process-node", "quote", "callout", "footer"],
+  "style": {
+    "tone": "persuasive",
+    "visualStyle": "professional",
+    "recommendedFonts": ["system-ui", "-apple-system", "Segoe UI"],
+    "accentUsage": "strong",
+    "iconStyle": "solid"
+  }
+}

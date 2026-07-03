@@ -1,0 +1,1033 @@
+{
+  "version": "1.0",
+  "components": [
+    {
+      "id": "title",
+      "name": "页面标题",
+      "category": "layout",
+      "description": "页面核心结论标题，必须使用结论式表达，禁止仅描述主题",
+      "pptxStrategy": "native",
+      "props": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true,
+          "default": null,
+          "description": "标题文本内容，应为结论式陈述"
+        },
+        {
+          "name": "level",
+          "type": "enum",
+          "required": false,
+          "default": "h1",
+          "description": "标题层级：cover(封面)/section(章节)/h1(页面)/h2(区域)",
+          "enum": ["cover", "section", "h1", "h2"]
+        },
+        {
+          "name": "accent",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "是否显示标题左侧强调色条"
+        }
+      ],
+      "example": {
+        "id": "title-1",
+        "type": "title",
+        "props": {
+          "text": "当前审核流程的主要瓶颈是人工判断无法规模化",
+          "level": "h1",
+          "accent": true
+        },
+        "position": { "x": 96, "y": 72, "width": 1728, "height": 80 },
+        "style": { "variant": "default", "color": "primary", "align": "left" }
+      }
+    },
+    {
+      "id": "subtitle",
+      "name": "页面副标题",
+      "category": "layout",
+      "description": "标题下方的补充说明文字，提供上下文或解释",
+      "pptxStrategy": "native",
+      "props": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true,
+          "default": null,
+          "description": "副标题文本内容"
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "required": false,
+          "default": "medium",
+          "description": "字号大小：small/medium/large",
+          "enum": ["small", "medium", "large"]
+        }
+      ],
+      "example": {
+        "id": "subtitle-1",
+        "type": "subtitle",
+        "props": {
+          "text": "从人工经验驱动，转向结构化、可复用的业务能力",
+          "size": "medium"
+        },
+        "position": { "x": 96, "y": 160, "width": 1728, "height": 48 },
+        "style": { "variant": "default", "color": "secondary", "align": "left" }
+      }
+    },
+    {
+      "id": "body-text",
+      "name": "正文段落",
+      "category": "content",
+      "description": "正文段落文本，支持多段落展示",
+      "pptxStrategy": "native",
+      "props": [
+        {
+          "name": "paragraphs",
+          "type": "array",
+          "required": true,
+          "default": null,
+          "description": "段落文本数组，每个元素为一个段落"
+        },
+        {
+          "name": "lineHeight",
+          "type": "number",
+          "required": false,
+          "default": 1.6,
+          "description": "行高倍数"
+        },
+        {
+          "name": "fontSize",
+          "type": "enum",
+          "required": false,
+          "default": "medium",
+          "description": "字号规格：small(20px)/medium(24px)/large(32px)",
+          "enum": ["small", "medium", "large"]
+        }
+      ],
+      "example": {
+        "id": "body-1",
+        "type": "body-text",
+        "props": {
+          "paragraphs": [
+            "平台通过自动化流程将审核效率提升3倍以上，同时保持95%以上的准确率。",
+            "系统支持自定义规则配置，可快速适配不同业务场景的审核需求。"
+          ],
+          "lineHeight": 1.6,
+          "fontSize": "medium"
+        },
+        "position": { "x": 96, "y": 240, "width": 800, "height": 200 },
+        "style": { "variant": "default", "color": "default", "align": "left" }
+      }
+    },
+    {
+      "id": "bullet-list",
+      "name": "要点列表",
+      "category": "content",
+      "description": "项目符号要点列表，用于展示关键论点、措施或发现",
+      "pptxStrategy": "native",
+      "props": [
+        {
+          "name": "items",
+          "type": "array",
+          "required": true,
+          "default": null,
+          "description": "列表项数组，每项为字符串或{text, highlight?, children?}结构"
+        },
+        {
+          "name": "bulletStyle",
+          "type": "enum",
+          "required": false,
+          "default": "dot",
+          "description": "列表符号样式：dot/check/arrow/number/none",
+          "enum": ["dot", "check", "arrow", "number", "none"]
+        },
+        {
+          "name": "columns",
+          "type": "number",
+          "required": false,
+          "default": 1,
+          "description": "分列数量，支持1-3列"
+        }
+      ],
+      "example": {
+        "id": "bullets-1",
+        "type": "bullet-list",
+        "props": {
+          "items": [
+            { "text": "自动化审核覆盖率达85%，人工仅需处理高风险案例" },
+            { "text": "平均审核时长从4小时缩短至15分钟", "highlight": true },
+            { "text": "支持多模态内容审核：文本、图片、视频" }
+          ],
+          "bulletStyle": "check",
+          "columns": 1
+        },
+        "position": { "x": 96, "y": 240, "width": 800, "height": 300 },
+        "style": { "variant": "default", "color": "default", "align": "left" }
+      }
+    },
+    {
+      "id": "metric-card",
+      "name": "指标卡片",
+      "category": "content",
+      "description": "核心数据指标展示卡片，突出关键数字与趋势",
+      "pptxStrategy": "native",
+      "props": [
+        {
+          "name": "value",
+          "type": "string",
+          "required": true,
+          "default": null,
+          "description": "指标数值，如 '85%'、'1.2亿'、'3x'"
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "default": null,
+          "description": "指标名称/标签"
+        },
+        {
+          "name": "trend",
+          "type": "enum",
+          "required": false,
+          "default": null,
+          "description": "趋势方向：up(上升)/down(下降)/flat(持平)",
+          "enum": ["up", "down", "flat"]
+        },
+        {
+          "name": "trendValue",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "趋势变化值，如 '+23%'、'-5%'"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "指标补充说明文字"
+        },
+        {
+          "name": "icon",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "卡片图标asset ID"
+        }
+      ],
+      "example": {
+        "id": "metric-1",
+        "type": "metric-card",
+        "props": {
+          "value": "85%",
+          "label": "自动化覆盖率",
+          "trend": "up",
+          "trendValue": "+23%",
+          "description": "较上季度提升23个百分点"
+        },
+        "position": { "x": 96, "y": 240, "width": 380, "height": 200 },
+        "style": { "variant": "elevated", "color": "primary", "align": "center" }
+      }
+    },
+    {
+      "id": "image",
+      "name": "图片",
+      "category": "visual",
+      "description": "图片、产品截图、照片等视觉素材展示",
+      "pptxStrategy": "native",
+      "props": [
+        {
+          "name": "src",
+          "type": "string",
+          "required": true,
+          "default": null,
+          "description": "图片资源asset ID或本地路径"
+        },
+        {
+          "name": "alt",
+          "type": "string",
+          "required": false,
+          "default": "",
+          "description": "图片替代文本（无障碍）"
+        },
+        {
+          "name": "fit",
+          "type": "enum",
+          "required": false,
+          "default": "contain",
+          "description": "图片适配模式：contain(等比适应)/cover(等比填充)/stretch(拉伸)",
+          "enum": ["contain", "cover", "stretch"]
+        },
+        {
+          "name": "caption",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "图片说明文字"
+        },
+        {
+          "name": "borderRadius",
+          "type": "number",
+          "required": false,
+          "default": 0,
+          "description": "圆角半径(px)"
+        },
+        {
+          "name": "shadow",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "是否添加投影效果"
+        }
+      ],
+      "example": {
+        "id": "img-1",
+        "type": "image",
+        "props": {
+          "src": "assets/images/product-dashboard.png",
+          "alt": "产品控制台界面截图",
+          "fit": "cover",
+          "caption": "图1：智能审核控制台全景",
+          "borderRadius": 12,
+          "shadow": true
+        },
+        "position": { "x": 960, "y": 240, "width": 864, "height": 540 },
+        "style": { "variant": "default", "color": "default", "align": "center" }
+      }
+    },
+    {
+      "id": "icon",
+      "name": "图标",
+      "category": "visual",
+      "description": "矢量图标，用于辅助视觉引导和信息层级",
+      "pptxStrategy": "svg",
+      "props": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "default": null,
+          "description": "图标名称/ID，对应图标库"
+        },
+        {
+          "name": "size",
+          "type": "enum",
+          "required": false,
+          "default": "medium",
+          "description": "图标尺寸：small(24px)/medium(32px)/large(48px)/xlarge(64px)",
+          "enum": ["small", "medium", "large", "xlarge"]
+        },
+        {
+          "name": "src",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "自定义图标SVG文件asset ID（优先于name）"
+        }
+      ],
+      "example": {
+        "id": "icon-1",
+        "type": "icon",
+        "props": {
+          "name": "check-circle",
+          "size": "large"
+        },
+        "position": { "x": 96, "y": 240, "width": 48, "height": 48 },
+        "style": { "variant": "default", "color": "success", "align": "center" }
+      }
+    },
+    {
+      "id": "comparison-panel",
+      "name": "对比面板",
+      "category": "content",
+      "description": "左右/上下对比卡片组，用于方案对比、前后对比、优劣势分析",
+      "pptxStrategy": "native",
+      "props": [
+        {
+          "name": "panels",
+          "type": "array",
+          "required": true,
+          "default": null,
+          "description": "对比面板数组，每项包含{title, items, badge?, highlight?}"
+        },
+        {
+          "name": "layout",
+          "type": "enum",
+          "required": false,
+          "default": "horizontal",
+          "description": "对比方向：horizontal(左右)/vertical(上下)",
+          "enum": ["horizontal", "vertical"]
+        },
+        {
+          "name": "showDivider",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否显示中间分隔线/VS标记"
+        }
+      ],
+      "example": {
+        "id": "compare-1",
+        "type": "comparison-panel",
+        "props": {
+          "panels": [
+            {
+              "title": "传统流程",
+              "badge": "Before",
+              "items": ["人工逐条审核", "平均耗时4小时", "标准不统一", "难以规模化"],
+              "highlight": false
+            },
+            {
+              "title": "AI协同流程",
+              "badge": "After",
+              "items": ["机器预审+人工复核", "平均耗时15分钟", "标准统一可追溯", "弹性扩展能力"],
+              "highlight": true
+            }
+          ],
+          "layout": "horizontal",
+          "showDivider": true
+        },
+        "position": { "x": 96, "y": 240, "width": 1728, "height": 500 },
+        "style": { "variant": "card", "color": "default", "align": "left" }
+      }
+    },
+    {
+      "id": "process-node",
+      "name": "流程节点",
+      "category": "content",
+      "description": "流程图节点，可串联形成业务流程或处理步骤",
+      "pptxStrategy": "native",
+      "props": [
+        {
+          "name": "steps",
+          "type": "array",
+          "required": true,
+          "default": null,
+          "description": "流程步骤数组，每项包含{title, description?, status?}"
+        },
+        {
+          "name": "direction",
+          "type": "enum",
+          "required": false,
+          "default": "horizontal",
+          "description": "流程方向：horizontal(水平)/vertical(垂直)",
+          "enum": ["horizontal", "vertical"]
+        },
+        {
+          "name": "showConnectors",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否显示节点间连接线和箭头"
+        },
+        {
+          "name": "stepStyle",
+          "type": "enum",
+          "required": false,
+          "default": "numbered",
+          "description": "节点样式：numbered(数字)/circle(圆点)/icon(图标)/card(卡片)",
+          "enum": ["numbered", "circle", "icon", "card"]
+        }
+      ],
+      "example": {
+        "id": "process-1",
+        "type": "process-node",
+        "props": {
+          "steps": [
+            { "title": "素材接入", "description": "多渠道内容统一接入", "status": "completed" },
+            { "title": "智能预审", "description": "AI引擎自动识别分类", "status": "completed" },
+            { "title": "风险分级", "description": "按风险等级自动路由", "status": "current" },
+            { "title": "人工复核", "description": "高风险内容人工审定", "status": "pending" },
+            { "title": "结果输出", "description": "审核结果同步业务系统", "status": "pending" }
+          ],
+          "direction": "horizontal",
+          "showConnectors": true,
+          "stepStyle": "numbered"
+        },
+        "position": { "x": 96, "y": 300, "width": 1728, "height": 200 },
+        "style": { "variant": "default", "color": "primary", "align": "center" }
+      }
+    },
+    {
+      "id": "timeline-node",
+      "name": "时间轴节点",
+      "category": "content",
+      "description": "时间轴节点，用于展示里程碑、历史事件或规划阶段",
+      "pptxStrategy": "native",
+      "props": [
+        {
+          "name": "events",
+          "type": "array",
+          "required": true,
+          "default": null,
+          "description": "时间事件数组，每项包含{date, title, description?, status?}"
+        },
+        {
+          "name": "alignment",
+          "type": "enum",
+          "required": false,
+          "default": "center",
+          "description": "时间轴对齐：left(左侧)/center(居中交替)/right(右侧)",
+          "enum": ["left", "center", "right"]
+        },
+        {
+          "name": "showAxis",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否显示时间轴线"
+        }
+      ],
+      "example": {
+        "id": "timeline-1",
+        "type": "timeline-node",
+        "props": {
+          "events": [
+            { "date": "Q1 2026", "title": "项目启动", "description": "完成需求调研与方案设计", "status": "completed" },
+            { "date": "Q2 2026", "title": "核心开发", "description": "AI引擎与审核平台开发", "status": "current" },
+            { "date": "Q3 2026", "title": "试点上线", "description": "选取业务线灰度试运行", "status": "pending" },
+            { "date": "Q4 2026", "title": "全面推广", "description": "全业务线覆盖运营", "status": "pending" }
+          ],
+          "alignment": "center",
+          "showAxis": true
+        },
+        "position": { "x": 96, "y": 240, "width": 1728, "height": 500 },
+        "style": { "variant": "default", "color": "primary", "align": "left" }
+      }
+    },
+    {
+      "id": "table",
+      "name": "数据表格",
+      "category": "content",
+      "description": "结构化数据表格展示，支持表头、数据行、汇总行",
+      "pptxStrategy": "native",
+      "props": [
+        {
+          "name": "headers",
+          "type": "array",
+          "required": true,
+          "default": null,
+          "description": "表头列名数组"
+        },
+        {
+          "name": "rows",
+          "type": "array",
+          "required": true,
+          "default": null,
+          "description": "数据行二维数组，每行与headers对应"
+        },
+        {
+          "name": "summary",
+          "type": "array",
+          "required": false,
+          "default": null,
+          "description": "汇总行数据（可选）"
+        },
+        {
+          "name": "headerBg",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "表头是否使用背景色"
+        },
+        {
+          "name": "zebra",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否使用斑马纹交替行背景"
+        },
+        {
+          "name": "columnWidths",
+          "type": "array",
+          "required": false,
+          "default": null,
+          "description": "各列宽度比例数组，如[1,2,1,1]"
+        }
+      ],
+      "example": {
+        "id": "table-1",
+        "type": "table",
+        "props": {
+          "headers": ["指标项", "传统方案", "AI方案", "提升幅度"],
+          "rows": [
+            ["审核时效", "4小时/条", "15分钟/条", "16x"],
+            ["人力成本", "100人/天", "20人/天", "80%降低"],
+            ["准确率", "82%", "95%", "+13pp"],
+            ["日均处理量", "5000条", "50000条", "10x"]
+          ],
+          "summary": null,
+          "headerBg": true,
+          "zebra": true,
+          "columnWidths": [2, 1, 1, 1]
+        },
+        "position": { "x": 96, "y": 240, "width": 1728, "height": 400 },
+        "style": { "variant": "default", "color": "default", "align": "left" }
+      }
+    },
+    {
+      "id": "bar-chart",
+      "name": "柱状图",
+      "category": "visual",
+      "description": "柱状图/条形图，用于分类数据对比展示",
+      "pptxStrategy": "native",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "图表标题"
+        },
+        {
+          "name": "categories",
+          "type": "array",
+          "required": true,
+          "default": null,
+          "description": "X轴/分类标签数组"
+        },
+        {
+          "name": "series",
+          "type": "array",
+          "required": true,
+          "default": null,
+          "description": "数据系列数组，每项包含{name, data, color?}"
+        },
+        {
+          "name": "orientation",
+          "type": "enum",
+          "required": false,
+          "default": "vertical",
+          "description": "柱状方向：vertical(垂直柱状)/horizontal(水平条形)",
+          "enum": ["vertical", "horizontal"]
+        },
+        {
+          "name": "stacked",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "是否堆叠显示"
+        },
+        {
+          "name": "showValues",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否在柱上显示数值标签"
+        },
+        {
+          "name": "unit",
+          "type": "string",
+          "required": false,
+          "default": "",
+          "description": "数值单位后缀"
+        }
+      ],
+      "example": {
+        "id": "bar-1",
+        "type": "bar-chart",
+        "props": {
+          "title": "各业务线审核效率对比",
+          "categories": ["电商", "内容", "社交", "金融", "教育"],
+          "series": [
+            { "name": "传统方案", "data": [45, 60, 55, 30, 40] },
+            { "name": "AI方案", "data": [380, 520, 490, 280, 350] }
+          ],
+          "orientation": "vertical",
+          "stacked": false,
+          "showValues": true,
+          "unit": "条/小时"
+        },
+        "position": { "x": 96, "y": 240, "width": 800, "height": 500 },
+        "style": { "variant": "default", "color": "default", "align": "center" }
+      }
+    },
+    {
+      "id": "line-chart",
+      "name": "折线图",
+      "category": "visual",
+      "description": "折线图/面积图，用于趋势变化和时间序列数据展示",
+      "pptxStrategy": "native",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "图表标题"
+        },
+        {
+          "name": "categories",
+          "type": "array",
+          "required": true,
+          "default": null,
+          "description": "X轴标签数组（通常为时间点）"
+        },
+        {
+          "name": "series",
+          "type": "array",
+          "required": true,
+          "default": null,
+          "description": "数据系列数组，每项包含{name, data, color?}"
+        },
+        {
+          "name": "area",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "是否填充面积（面积图）"
+        },
+        {
+          "name": "smooth",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否使用平滑曲线"
+        },
+        {
+          "name": "showPoints",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否显示数据点标记"
+        },
+        {
+          "name": "showGrid",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否显示网格线"
+        },
+        {
+          "name": "unit",
+          "type": "string",
+          "required": false,
+          "default": "",
+          "description": "数值单位后缀"
+        }
+      ],
+      "example": {
+        "id": "line-1",
+        "type": "line-chart",
+        "props": {
+          "title": "月度自动化覆盖率趋势",
+          "categories": ["1月", "2月", "3月", "4月", "5月", "6月"],
+          "series": [
+            { "name": "2025年", "data": [42, 48, 52, 55, 58, 62] },
+            { "name": "2026年", "data": [65, 72, 78, 82, 85, 88] }
+          ],
+          "area": false,
+          "smooth": true,
+          "showPoints": true,
+          "showGrid": true,
+          "unit": "%"
+        },
+        "position": { "x": 96, "y": 240, "width": 800, "height": 500 },
+        "style": { "variant": "default", "color": "default", "align": "center" }
+      }
+    },
+    {
+      "id": "pie-chart",
+      "name": "饼图/环图",
+      "category": "visual",
+      "description": "饼图或环形图，用于占比构成和分布展示",
+      "pptxStrategy": "native",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "图表标题"
+        },
+        {
+          "name": "data",
+          "type": "array",
+          "required": true,
+          "default": null,
+          "description": "数据项数组，每项包含{name, value, color?}"
+        },
+        {
+          "name": "donut",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否为环形图（空心饼图）"
+        },
+        {
+          "name": "showLegend",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否显示图例"
+        },
+        {
+          "name": "showPercentage",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否在扇区显示百分比标签"
+        },
+        {
+          "name": "centerLabel",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "环形图中心文字（仅donut=true时有效）"
+        },
+        {
+          "name": "centerValue",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "环形图中心数值（仅donut=true时有效）"
+        }
+      ],
+      "example": {
+        "id": "pie-1",
+        "type": "pie-chart",
+        "props": {
+          "title": "风险等级分布",
+          "data": [
+            { "name": "低风险", "value": 65 },
+            { "name": "中风险", "value": 22 },
+            { "name": "高风险", "value": 10 },
+            { "name": "极高风险", "value": 3 }
+          ],
+          "donut": true,
+          "showLegend": true,
+          "showPercentage": true,
+          "centerLabel": "总处理量",
+          "centerValue": "120万"
+        },
+        "position": { "x": 960, "y": 240, "width": 864, "height": 500 },
+        "style": { "variant": "default", "color": "default", "align": "center" }
+      }
+    },
+    {
+      "id": "quote",
+      "name": "引文/观点",
+      "category": "content",
+      "description": "引用语、客户证言或核心观点展示",
+      "pptxStrategy": "native",
+      "props": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true,
+          "default": null,
+          "description": "引用文本内容"
+        },
+        {
+          "name": "author",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "引用来源/作者"
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "来源出处，如职位、报告名称等"
+        },
+        {
+          "name": "showMarks",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否显示引号装饰"
+        }
+      ],
+      "example": {
+        "id": "quote-1",
+        "type": "quote",
+        "props": {
+          "text": "AI不是要取代审核人员，而是让他们从重复性劳动中解放出来，专注于真正需要人类判断的复杂案例。",
+          "author": "项目负责人",
+          "source": "智能审核平台项目组",
+          "showMarks": true
+        },
+        "position": { "x": 200, "y": 300, "width": 1520, "height": 200 },
+        "style": { "variant": "accent", "color": "primary", "align": "center" }
+      }
+    },
+    {
+      "id": "callout",
+      "name": "强调信息",
+      "category": "content",
+      "description": "高亮提示框、关键信息强调、注意事项或核心洞察",
+      "pptxStrategy": "native",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "提示框标题"
+        },
+        {
+          "name": "text",
+          "type": "string",
+          "required": true,
+          "default": null,
+          "description": "提示内容文本"
+        },
+        {
+          "name": "variant",
+          "type": "enum",
+          "required": false,
+          "default": "info",
+          "description": "提示类型：info(信息)/success(成功)/warning(警告)/danger(危险)/insight(洞察)",
+          "enum": ["info", "success", "warning", "danger", "insight"]
+        },
+        {
+          "name": "icon",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "是否显示类型图标"
+        }
+      ],
+      "example": {
+        "id": "callout-1",
+        "type": "callout",
+        "props": {
+          "title": "核心洞察",
+          "text": "平台价值不在于替代人工，而在于沉淀可复用的风险判断能力，形成组织级的知识资产。",
+          "variant": "insight",
+          "icon": true
+        },
+        "position": { "x": 96, "y": 700, "width": 1728, "height": 120 },
+        "style": { "variant": "filled", "color": "accent", "align": "left" }
+      }
+    },
+    {
+      "id": "footer",
+      "name": "页脚",
+      "category": "layout",
+      "description": "页面底部信息，包含页码、品牌、来源、保密标识等",
+      "pptxStrategy": "native",
+      "props": [
+        {
+          "name": "pageNumber",
+          "type": ["string", "number"],
+          "required": false,
+          "default": null,
+          "description": "当前页码或页码格式，如 '03'、'3/15'"
+        },
+        {
+          "name": "brand",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "品牌/公司名称占位符"
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "数据来源说明"
+        },
+        {
+          "name": "confidential",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "是否显示保密标识"
+        },
+        {
+          "name": "logo",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "Logo图片asset ID"
+        },
+        {
+          "name": "elements",
+          "type": "array",
+          "required": false,
+          "default": ["brand", "pageNumber"],
+          "description": "页脚元素排列顺序，可选：brand/logo/source/confidential/pageNumber"
+        }
+      ],
+      "example": {
+        "id": "footer-1",
+        "type": "footer",
+        "props": {
+          "pageNumber": "03",
+          "brand": "[Company Name]",
+          "source": "数据来源：内部运营系统",
+          "confidential": true,
+          "elements": ["brand", "source", "confidential", "pageNumber"]
+        },
+        "position": { "x": 96, "y": 980, "width": 1728, "height": 40 },
+        "style": { "variant": "default", "color": "muted", "align": "justify" }
+      }
+    },
+    {
+      "id": "background-art",
+      "name": "背景装饰",
+      "category": "fallback",
+      "description": "页面背景视觉元素，包括几何装饰、渐变、插画等，PPTX中降级为图片",
+      "pptxStrategy": "raster",
+      "props": [
+        {
+          "name": "variant",
+          "type": "enum",
+          "required": true,
+          "default": null,
+          "description": "背景类型：geometric(几何)/gradient(渐变)/illustration(插画)/pattern(纹理)/minimal(极简)",
+          "enum": ["geometric", "gradient", "illustration", "pattern", "minimal"]
+        },
+        {
+          "name": "src",
+          "type": "string",
+          "required": false,
+          "default": null,
+          "description": "自定义背景图片asset ID（优先于variant）"
+        },
+        {
+          "name": "opacity",
+          "type": "number",
+          "required": false,
+          "default": 0.1,
+          "description": "背景不透明度(0-1)"
+        },
+        {
+          "name": "overlay",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "是否添加半透明遮罩层保证文字可读性"
+        },
+        {
+          "name": "position",
+          "type": "enum",
+          "required": false,
+          "default": "full",
+          "description": "背景位置：full(全屏)/top(顶部)/bottom(底部)/corner(角落)/side(侧边)",
+          "enum": ["full", "top", "bottom", "corner", "side"]
+        }
+      ],
+      "example": {
+        "id": "bg-1",
+        "type": "background-art",
+        "props": {
+          "variant": "geometric",
+          "opacity": 0.08,
+          "overlay": true,
+          "position": "corner"
+        },
+        "position": { "x": 0, "y": 0, "width": 1920, "height": 1080 },
+        "style": { "variant": "default", "color": "primary", "align": "center" }
+      }
+    }
+  ]
+}

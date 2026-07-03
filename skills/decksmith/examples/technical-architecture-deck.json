@@ -1,0 +1,552 @@
+{
+  "version": "1.0",
+  "meta": {
+    "title": "分布式AI训练平台架构设计",
+    "author": "技术架构团队",
+    "language": "zh-CN",
+    "ratio": "16:9",
+    "createdAt": "2026-07-04"
+  },
+  "theme": "tech-gradient",
+  "template": "technical-architecture",
+  "settings": {
+    "canvasWidth": 1920,
+    "canvasHeight": 1080,
+    "pptLayout": "LAYOUT_WIDE",
+    "editablePriority": "hybrid",
+    "exportHtml": true,
+    "exportPdf": true,
+    "exportPptx": true
+  },
+  "assets": [],
+  "slides": [
+    {
+      "id": "slide-01",
+      "type": "cover",
+      "layout": "cover",
+      "title": "分布式AI训练平台架构设计",
+      "subtitle": "高性能、高可用、易扩展的大规模模型训练基础设施",
+      "themeVariant": "dark",
+      "components": [
+        {
+          "id": "cover-glow",
+          "type": "background-art",
+          "variant": "gradient-glow",
+          "description": "中心蓝色到紫色径向渐变光晕，边缘深色科技感网格背景装饰"
+        },
+        {
+          "id": "cover-title",
+          "type": "title",
+          "content": "分布式AI训练平台架构设计",
+          "variant": "cover-main-dark"
+        },
+        {
+          "id": "cover-subtitle",
+          "type": "subtitle",
+          "content": "高性能、高可用、易扩展的大规模模型训练基础设施",
+          "variant": "cover-sub-dark"
+        },
+        {
+          "id": "cover-team",
+          "type": "body-text",
+          "content": "[Company Name] 技术架构团队",
+          "variant": "cover-meta-dark"
+        },
+        {
+          "id": "cover-version",
+          "type": "body-text",
+          "content": "V2.0 | 2026年7月",
+          "variant": "cover-meta-dark"
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "01"
+      },
+      "qa": {
+        "maxTextDensity": "low",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-02",
+      "type": "agenda",
+      "layout": "agenda",
+      "title": "目录",
+      "subtitle": "技术架构分享内容",
+      "themeVariant": "dark",
+      "components": [
+        {
+          "id": "agenda-list",
+          "type": "bullet-list",
+          "variant": "agenda-numbered-dark",
+          "items": [
+            "设计目标与核心挑战",
+            "五层总体架构概览",
+            "基础设施层：算力与网络",
+            "数据层：高效数据管道",
+            "AI引擎层：分布式训练核心",
+            "可观测性：全链路监控",
+            "演进路线图"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "02"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-03",
+      "type": "single-message",
+      "layout": "single-message",
+      "title": "四大设计目标：效率、稳定性、利用率、易用性",
+      "subtitle": "设计目标与核心挑战",
+      "themeVariant": "dark",
+      "components": [
+        {
+          "id": "design-goals",
+          "type": "kpi-dashboard",
+          "variant": "mini",
+          "items": [
+            {
+              "label": "训练效率",
+              "value": "90%+",
+              "description": "线性加速比，万卡集群有效训练时间占比"
+            },
+            {
+              "label": "任务成功率",
+              "value": "99.5%",
+              "description": "检查点容错与自动恢复机制"
+            },
+            {
+              "label": "GPU利用率",
+              "value": "55%+",
+              "description": "均值利用率，远超行业平均35%水平"
+            },
+            {
+              "label": "上线周期",
+              "value": "<1天",
+              "description": "从提交任务到开始训练的平均时间"
+            }
+          ]
+        },
+        {
+          "id": "key-challenges",
+          "type": "bullet-list",
+          "variant": "challenges-dark",
+          "items": [
+            "万卡规模分布式训练的网络通信瓶颈",
+            "GPU故障频发场景下的快速容错恢复",
+            "多租户共享环境下的资源隔离与调度",
+            "TB级训练数据的高效加载与预处理"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "03"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-04",
+      "type": "architecture",
+      "layout": "architecture",
+      "title": "五层分层架构，实现关注点分离与独立演进",
+      "subtitle": "总体架构概览",
+      "themeVariant": "dark",
+      "components": [
+        {
+          "id": "arch-layer-1",
+          "type": "architecture-layer",
+          "variant": "top-dark",
+          "title": "用户接入层",
+          "items": ["Web控制台", "CLI/SDK", "RESTful API", "Notebook集成"]
+        },
+        {
+          "id": "arch-layer-2",
+          "type": "architecture-layer",
+          "variant": "dark",
+          "title": "平台服务层",
+          "items": ["任务调度", "资源管理", "元数据服务", "用户权限", "镜像管理"]
+        },
+        {
+          "id": "arch-layer-3",
+          "type": "architecture-layer",
+          "variant": "dark",
+          "title": "AI引擎层",
+          "items": ["分布式框架", "并行策略", "混合精度", "检查点管理", "自动容错"]
+        },
+        {
+          "id": "arch-layer-4",
+          "type": "architecture-layer",
+          "variant": "dark",
+          "title": "数据层",
+          "items": ["数据存储", "数据缓存", "数据加载", "预处理管道", "数据版本"]
+        },
+        {
+          "id": "arch-layer-5",
+          "type": "architecture-layer",
+          "variant": "bottom-dark",
+          "title": "基础设施层",
+          "items": ["GPU算力池", "高速网络", "存储系统", "容器运行时", "监控运维"]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "04"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-05",
+      "type": "two-column",
+      "layout": "two-column",
+      "title": "异构算力统一调度，RDMA高速网络支撑万卡互联",
+      "subtitle": "基础设施层：算力与网络",
+      "themeVariant": "dark",
+      "components": [
+        {
+          "id": "infra-compute-title",
+          "type": "title",
+          "content": "算力资源池",
+          "variant": "column-title-dark"
+        },
+        {
+          "id": "infra-compute-content",
+          "type": "bullet-list",
+          "variant": "column-list-dark",
+          "items": [
+            "GPU型号：支持主流训练卡，单集群10000+卡规模",
+            "拓扑感知：NVLink/RDMA拓扑感知调度，减少跨机通信",
+            "异构调度：CPU/GPU/NPU混合调度，适配不同硬件",
+            "分时共享：支持独占/共享/抢占多种资源分配模式",
+            "资源隔离：MIG分区+容器cgroup隔离，性能干扰<5%"
+          ]
+        },
+        {
+          "id": "infra-network-title",
+          "type": "title",
+          "content": "高速网络架构",
+          "variant": "column-title-dark"
+        },
+        {
+          "id": "infra-network-content",
+          "type": "bullet-list",
+          "variant": "column-list-dark",
+          "items": [
+            "网络拓扑：Spine-Leaf两级Clos架构，无阻塞Fat-Tree",
+            "单卡带宽：400Gbps RDMA (RoCEv2)，端到端时延<2μs",
+            "通信优化：自适应路由、拥塞控制、流量整形",
+            "网络分区：计算/存储/管理三网物理分离",
+            "故障域：机柜级故障域设计，单柜故障不影响全局"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "05"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-06",
+      "type": "three-card",
+      "layout": "three-card",
+      "title": "分层存储+多级缓存，数据加载IO瓶颈消除",
+      "subtitle": "数据层：高效数据管道",
+      "themeVariant": "dark",
+      "components": [
+        {
+          "id": "data-card-1",
+          "type": "card",
+          "variant": "capability-dark",
+          "title": "分层存储体系",
+          "icon": "storage",
+          "items": [
+            "冷数据：对象存储，EB级容量，成本最优",
+            "温数据：并行文件系统，TB/s级聚合带宽",
+            "热数据：本地NVMe缓存，微秒级访问时延",
+            "智能预取：基于访问模式自动冷热分层"
+          ]
+        },
+        {
+          "id": "data-card-2",
+          "type": "card",
+          "variant": "capability-dark",
+          "title": "高效数据加载",
+          "icon": "pipeline",
+          "items": [
+            "分布式数据分片加载，避免单点瓶颈",
+            "异步预取+流水线重叠计算与IO",
+            "内存映射零拷贝，减少CPU开销",
+            "数据格式优化：Parquet/WeDataset等高压缩比格式"
+          ]
+        },
+        {
+          "id": "data-card-3",
+          "type": "card",
+          "variant": "capability-dark",
+          "title": "数据预处理",
+          "icon": "processing",
+          "items": [
+            "GPU加速数据预处理（图像/文本/音频）",
+            "在线预处理算子库，开箱即用",
+            "数据版本管理与血缘追踪",
+            "数据质量校验与异常检测"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "06"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-07",
+      "type": "architecture",
+      "layout": "architecture",
+      "title": "3D并行+混合精度+自动容错，训练效率最大化",
+      "subtitle": "AI引擎层：分布式训练核心",
+      "themeVariant": "dark",
+      "components": [
+        {
+          "id": "engine-parallel",
+          "type": "architecture-layer",
+          "variant": "dark",
+          "title": "并行策略",
+          "items": ["数据并行 (DP)", "张量并行 (TP)", "流水线并行 (PP)", "序列并行 (SP)", "ZeRO优化"]
+        },
+        {
+          "id": "engine-performance",
+          "type": "architecture-layer",
+          "variant": "dark",
+          "title": "性能优化",
+          "items": ["混合精度训练 (BF16/FP8)", "梯度累积", "通信计算重叠", "算子融合", "编译优化"]
+        },
+        {
+          "id": "engine-reliability",
+          "type": "architecture-layer",
+          "variant": "dark",
+          "title": "可靠性保障",
+          "items": ["异步检查点", "增量保存", "故障自动检测", "分钟级恢复", "弹性伸缩"]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "07"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-08",
+      "type": "kpi-dashboard",
+      "layout": "kpi-dashboard",
+      "title": "全链路可观测性，实时掌握训练状态与系统健康",
+      "subtitle": "可观测性平台",
+      "themeVariant": "dark",
+      "components": [
+        {
+          "id": "observ-metric-1",
+          "type": "metric-card",
+          "variant": "primary-dark",
+          "label": "指标采集频率",
+          "value": "1s",
+          "trend": "neutral",
+          "description": "GPU/CPU/内存/网络等万级指标秒级采集"
+        },
+        {
+          "id": "observ-metric-2",
+          "type": "metric-card",
+          "variant": "primary-dark",
+          "label": "日志处理能力",
+          "value": "10GB/s",
+          "trend": "neutral",
+          "description": "分布式日志实时采集、索引与检索"
+        },
+        {
+          "id": "observ-metric-3",
+          "type": "metric-card",
+          "variant": "secondary-dark",
+          "label": "链路采样",
+          "value": "100%",
+          "trend": "neutral",
+          "description": "分布式训练全链路追踪，慢节点定位"
+        },
+        {
+          "id": "observ-metric-4",
+          "type": "metric-card",
+          "variant": "secondary-dark",
+          "label": "告警响应",
+          "value": "<30s",
+          "trend": "neutral",
+          "description": "异常检测到告警触达平均时间"
+        },
+        {
+          "id": "observ-features",
+          "type": "bullet-list",
+          "variant": "two-column-dark",
+          "items": [
+            "GPU性能看板：利用率、显存、SM活动、Tensor Core使用率",
+            "通信监控：RDMA带宽、时延、丢包、拥塞状态",
+            "训练看板：Loss曲线、吞吐量( tokens/s )、梯度范数",
+            "异常检测：基于机器学习的慢节点/故障预测",
+            "成本分析：任务级资源消耗与成本分摊账单"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "08"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-09",
+      "type": "roadmap",
+      "layout": "roadmap",
+      "title": "三阶段演进路线，从万卡规模到超大规模智能算力平台",
+      "subtitle": "演进路线图",
+      "themeVariant": "dark",
+      "components": [
+        {
+          "id": "roadmap-phase-1",
+          "type": "timeline-node",
+          "variant": "roadmap-dark",
+          "phase": "Phase 1",
+          "time": "2026 Q3",
+          "status": "completed",
+          "title": "基础能力建设",
+          "items": [
+            "单集群5000卡规模稳定运行",
+            "3D并行训练框架上线",
+            "基础监控告警体系",
+            "GPU利用率达到45%"
+          ]
+        },
+        {
+          "id": "roadmap-phase-2",
+          "type": "timeline-node",
+          "variant": "roadmap-dark",
+          "phase": "Phase 2",
+          "time": "2026 Q4 - 2027 Q1",
+          "status": "in-progress",
+          "title": "效率与稳定性优化",
+          "items": [
+            "万卡集群线性加速比>90%",
+            "自动容错与弹性训练",
+            "GPU利用率提升至55%",
+            "智能调度与分时复用"
+          ]
+        },
+        {
+          "id": "roadmap-phase-3",
+          "type": "timeline-node",
+          "variant": "roadmap-dark",
+          "phase": "Phase 3",
+          "time": "2027 Q2+",
+          "status": "planned",
+          "title": "智能化与超大规模",
+          "items": [
+            "跨区域多集群联邦调度",
+            "训练性能自动调优（AutoML）",
+            "10万卡规模支持能力",
+            "GPU利用率目标65%+"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "09"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-10",
+      "type": "summary",
+      "layout": "summary",
+      "title": "分布式训练平台核心技术总结",
+      "subtitle": "关键收获",
+      "themeVariant": "dark",
+      "components": [
+        {
+          "id": "summary-points",
+          "type": "bullet-list",
+          "variant": "summary-dark",
+          "items": [
+            "分层架构实现解耦，每层可独立优化演进",
+            "网络是大规模训练的首要瓶颈，需要从硬件到软件协同优化",
+            "容错能力是万卡规模的必备条件，检查点与恢复机制决定有效训练时间",
+            "可观测性不是锦上添花，而是大规模系统运维的基础",
+            "GPU利用率提升需要硬件、框架、调度、算法多维度协同"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "10"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-11",
+      "type": "qa",
+      "layout": "qa",
+      "title": "Q&A",
+      "subtitle": "感谢聆听，欢迎技术交流",
+      "themeVariant": "dark",
+      "components": [
+        {
+          "id": "qa-glow",
+          "type": "background-art",
+          "variant": "gradient-glow-subtle",
+          "description": "淡淡的中心光晕装饰"
+        },
+        {
+          "id": "qa-contact",
+          "type": "body-text",
+          "content": "技术交流：[arch-team@company.example]",
+          "variant": "qa-contact-dark"
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "11"
+      },
+      "qa": {
+        "maxTextDensity": "low",
+        "allowRasterFallback": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "id": "business-blue",
+  "name": "商务蓝",
+  "version": "1.0.0",
+  "colors": {
+    "background": "#FFFFFF",
+    "surface": "#F0F7FF",
+    "surfaceAlt": "#E0F0FE",
+    "primary": "#0C4A6E",
+    "secondary": "#075985",
+    "tertiary": "#0369A1",
+    "accent": "#0284C7",
+    "accentSoft": "#E0F2FE",
+    "accentHover": "#0369A1",
+    "positive": "#059669",
+    "positiveSoft": "#D1FAE5",
+    "warning": "#D97706",
+    "warningSoft": "#FEF3C7",
+    "danger": "#DC2626",
+    "dangerSoft": "#FEE2E2",
+    "line": "#BAE6FD",
+    "lineStrong": "#7DD3FC",
+    "textPrimary": "#0C4A6E",
+    "textSecondary": "#0369A1",
+    "textTertiary": "#38BDF8",
+    "textOnAccent": "#FFFFFF",
+    "overlay": "rgba(12, 74, 110, 0.5)"
+  },
+  "fonts": {
+    "heading": {
+      "family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
+      "fallback": "sans-serif"
+    },
+    "body": {
+      "family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
+      "fallback": "sans-serif"
+    },
+    "mono": {
+      "family": "'SF Mono', 'Fira Code', 'Roboto Mono', Menlo, Consolas, monospace",
+      "fallback": "monospace"
+    }
+  },
+  "typography": {
+    "coverTitle": {
+      "size": 62,
+      "weight": 700,
+      "lineHeight": 1.12
+    },
+    "coverSubtitle": {
+      "size": 26,
+      "weight": 400,
+      "lineHeight": 1.5
+    },
+    "sectionTitle": {
+      "size": 54,
+      "weight": 700,
+      "lineHeight": 1.18
+    },
+    "slideTitle": {
+      "size": 38,
+      "weight": 600,
+      "lineHeight": 1.24
+    },
+    "slideSubtitle": {
+      "size": 23,
+      "weight": 400,
+      "lineHeight": 1.5
+    },
+    "bodyLarge": {
+      "size": 23,
+      "weight": 400,
+      "lineHeight": 1.6
+    },
+    "body": {
+      "size": 20,
+      "weight": 400,
+      "lineHeight": 1.62
+    },
+    "bodySmall": {
+      "size": 18,
+      "weight": 400,
+      "lineHeight": 1.58
+    },
+    "caption": {
+      "size": 16,
+      "weight": 400,
+      "lineHeight": 1.5
+    },
+    "metricValue": {
+      "size": 54,
+      "weight": 700,
+      "lineHeight": 1.1
+    },
+    "metricLabel": {
+      "size": 17,
+      "weight": 500,
+      "lineHeight": 1.4
+    }
+  },
+  "spacing": {
+    "pageX": 96,
+    "pageY": 72,
+    "sectionGap": 48,
+    "elementGap": 24,
+    "cardPadding": 32,
+    "cardGap": 20,
+    "listIndent": 28,
+    "listGap": 12
+  },
+  "shape": {
+    "borderRadius": 10,
+    "borderRadiusSmall": 5,
+    "borderRadiusLarge": 18,
+    "borderWidth": 1,
+    "borderWidthStrong": 2
+  },
+  "shadow": {
+    "card": "0 2px 8px rgba(2, 132, 199, 0.08)",
+    "elevated": "0 4px 12px rgba(2, 132, 199, 0.12)",
+    "float": "0 8px 24px rgba(2, 132, 199, 0.15)"
+  },
+  "charts": {
+    "palette": [
+      "#0284C7",
+      "#06B6D4",
+      "#0891B2",
+      "#0EA5E9",
+      "#38BDF8",
+      "#7DD3FC",
+      "#0369A1",
+      "#0C4A6E"
+    ],
+    "gridColor": "#E0F2FE",
+    "axisColor": "#7DD3FC"
+  },
+  "footer": {
+    "showPageNumber": true,
+    "showBrand": true,
+    "brandText": "",
+    "textColor": "#38BDF8",
+    "fontSize": 14
+  },
+  "logo": {
+    "position": "top-left",
+    "height": 32,
+    "marginX": 96,
+    "marginY": 48
+  }
+}

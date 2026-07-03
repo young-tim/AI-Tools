@@ -1,0 +1,124 @@
+{
+  "id": "data-report",
+  "name": "数据报告模板",
+  "version": "1.0.0",
+  "description": "适用于经营数据、运营复盘、业务分析等场景，强调数据可视化、指标监控与洞察发现",
+  "recommendedThemes": ["default-light", "default-dark", "enterprise-light"],
+  "defaultTheme": "default-light",
+  "contentDensity": "high",
+  "slideStructure": [
+    {
+      "type": "cover",
+      "layout": "cover",
+      "required": true,
+      "title": "封面",
+      "description": "报告标题、报告周期、汇报对象、日期"
+    },
+    {
+      "type": "agenda",
+      "layout": "agenda",
+      "required": true,
+      "title": "目录",
+      "description": "报告章节与分析框架导航"
+    },
+    {
+      "type": "kpi-dashboard",
+      "layout": "kpi-dashboard",
+      "required": true,
+      "title": "核心指标概览",
+      "description": "关键KPI指标卡片、核心数据总览、同比环比"
+    },
+    {
+      "type": "single-message",
+      "layout": "single-message",
+      "required": true,
+      "title": "执行摘要",
+      "description": "一页纸核心结论、关键发现与主要洞察"
+    },
+    {
+      "type": "section",
+      "layout": "section",
+      "required": false,
+      "title": "章节过渡",
+      "description": "分模块分析标识页"
+    },
+    {
+      "type": "kpi-dashboard",
+      "layout": "kpi-dashboard",
+      "required": true,
+      "title": "业务规模数据",
+      "description": "用户规模、交易量、收入、增长指标等核心规模数据"
+    },
+    {
+      "type": "two-column",
+      "layout": "two-column",
+      "required": true,
+      "title": "趋势分析",
+      "description": "时间维度趋势变化、多指标折线图、增长曲线"
+    },
+    {
+      "type": "comparison",
+      "layout": "comparison",
+      "required": true,
+      "title": "维度对比",
+      "description": "渠道对比、区域对比、人群对比、环比同比对比"
+    },
+    {
+      "type": "table-report",
+      "layout": "table-report",
+      "required": true,
+      "title": "明细数据表",
+      "description": "详细数据表格、细分维度数据、排名与明细"
+    },
+    {
+      "type": "matrix",
+      "layout": "matrix",
+      "required": false,
+      "title": "问题定位",
+      "description": "四象限分析、问题分类矩阵、优先级评估"
+    },
+    {
+      "type": "two-column",
+      "layout": "two-column",
+      "required": true,
+      "title": "归因分析",
+      "description": "数据波动原因、驱动因素拆解、影响因子分析"
+    },
+    {
+      "type": "three-card",
+      "layout": "three-card",
+      "required": false,
+      "title": "亮点与风险",
+      "description": "本期亮点、存在问题、潜在风险"
+    },
+    {
+      "type": "kpi-dashboard",
+      "layout": "kpi-dashboard",
+      "required": false,
+      "title": "预测与目标",
+      "description": "下期预测、目标差距、达成情况"
+    },
+    {
+      "type": "summary",
+      "layout": "summary",
+      "required": true,
+      "title": "结论与建议",
+      "description": "数据结论总结、行动建议、后续关注重点"
+    },
+    {
+      "type": "qa",
+      "layout": "qa",
+      "required": true,
+      "title": "Q&A",
+      "description": "问答交流页"
+    }
+  ],
+  "defaultComponents": ["title", "subtitle", "metric-card", "bar-chart", "line-chart", "pie-chart", "table", "body-text", "bullet-list", "callout", "footer"],
+  "style": {
+    "tone": "analytical",
+    "visualStyle": "data-driven",
+    "recommendedFonts": ["system-ui", "-apple-system", "Segoe UI"],
+    "accentUsage": "data-focused",
+    "iconStyle": "minimal"
+  }
+}

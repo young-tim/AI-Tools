@@ -1,0 +1,124 @@
+{
+  "id": "business-consulting",
+  "name": "企业咨询模板",
+  "version": "1.0.0",
+  "description": "适用于企业咨询、战略方案、诊断报告等正式商务场景，强调结构化分析与结论导向",
+  "recommendedThemes": ["enterprise-light", "default-light", "business-blue"],
+  "defaultTheme": "enterprise-light",
+  "contentDensity": "medium",
+  "slideStructure": [
+    {
+      "type": "cover",
+      "layout": "cover",
+      "required": true,
+      "title": "封面",
+      "description": "项目标题、副标题、汇报方、日期"
+    },
+    {
+      "type": "agenda",
+      "layout": "agenda",
+      "required": true,
+      "title": "目录",
+      "description": "汇报议程与章节导航"
+    },
+    {
+      "type": "section",
+      "layout": "section",
+      "required": false,
+      "title": "章节过渡",
+      "description": "分章节标识页"
+    },
+    {
+      "type": "single-message",
+      "layout": "single-message",
+      "required": true,
+      "title": "核心结论",
+      "description": "一页纸核心观点与关键洞察"
+    },
+    {
+      "type": "two-column",
+      "layout": "two-column",
+      "required": true,
+      "title": "背景与问题",
+      "description": "项目背景、业务现状与核心问题阐述"
+    },
+    {
+      "type": "comparison",
+      "layout": "comparison",
+      "required": true,
+      "title": "现状诊断",
+      "description": "当前状态对比分析、差距识别"
+    },
+    {
+      "type": "matrix",
+      "layout": "matrix",
+      "required": false,
+      "title": "问题矩阵",
+      "description": "问题优先级矩阵、影响-紧迫度分析"
+    },
+    {
+      "type": "architecture",
+      "layout": "architecture",
+      "required": true,
+      "title": "解决方案框架",
+      "description": "整体解决方案架构与方法论"
+    },
+    {
+      "type": "three-card",
+      "layout": "three-card",
+      "required": true,
+      "title": "能力模块",
+      "description": "三大核心能力/支柱/举措说明"
+    },
+    {
+      "type": "process-flow",
+      "layout": "process-flow",
+      "required": true,
+      "title": "实施路径",
+      "description": "分阶段实施流程与关键节点"
+    },
+    {
+      "type": "roadmap",
+      "layout": "roadmap",
+      "required": true,
+      "title": "路线图",
+      "description": "中长期规划与里程碑时间轴"
+    },
+    {
+      "type": "kpi-dashboard",
+      "layout": "kpi-dashboard",
+      "required": false,
+      "title": "预期收益",
+      "description": "关键指标预测与价值量化"
+    },
+    {
+      "type": "table-report",
+      "layout": "table-report",
+      "required": false,
+      "title": "投入产出",
+      "description": "资源投入、成本效益分析表格"
+    },
+    {
+      "type": "summary",
+      "layout": "summary",
+      "required": true,
+      "title": "总结与行动",
+      "description": "核心总结、行动建议与下一步"
+    },
+    {
+      "type": "qa",
+      "layout": "qa",
+      "required": true,
+      "title": "Q&A",
+      "description": "问答交流页"
+    }
+  ],
+  "defaultComponents": ["title", "subtitle", "body-text", "bullet-list", "metric-card", "comparison-panel", "process-node", "table", "callout", "footer"],
+  "style": {
+    "tone": "formal",
+    "visualStyle": "structured",
+    "recommendedFonts": ["system-ui", "-apple-system", "Segoe UI"],
+    "accentUsage": "moderate",
+    "iconStyle": "outline"
+  }
+}
