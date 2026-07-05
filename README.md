@@ -18,30 +18,30 @@ AI 相关工具与 [Agent Skills](https://skills.sh/) 集合。
 
 ### 命令行安装
 
-`<owner>` 替换为 GitHub 用户名，例如 `young-tim`。`-g` 表示安装到用户目录（如 `~/.agents/skills/`），省略则安装到当前项目。
+`-g` 表示安装到用户目录（如 `~/.agents/skills/`），省略则安装到当前项目。
 
 ```bash
 # 列出本仓库所有 skill
-npx skills add <owner>/AI-Tools --list
+npx skills add young-tim/AI-Tools --list
 
 # ── 安装全部 skill ──────────────────────────────────────
 # 交互式：选择要装的 skill 和 Agent
-npx skills add <owner>/AI-Tools -g
+npx skills add young-tim/AI-Tools -g
 
 # 非交互：全部 skill → 全部 Agent
-npx skills add <owner>/AI-Tools --all -g -y
+npx skills add young-tim/AI-Tools --all -g -y
 # 等价写法
-npx skills add <owner>/AI-Tools --skill '*' --agent '*' -g -y
+npx skills add young-tim/AI-Tools --skill '*' --agent '*' -g -y
 
 # ── 安装指定 skill ──────────────────────────────────────
 # 交互式：不指定 Agent，CLI 会提示选择
-npx skills add <owner>/AI-Tools --skill dify-manage -g
+npx skills add young-tim/AI-Tools --skill dify-manage -g
 
 # 指定 Agent（Cursor，用户级，跳过确认）
-npx skills add <owner>/AI-Tools --skill dify-manage -g -y --agent cursor
+npx skills add young-tim/AI-Tools --skill dify-manage -g -y --agent cursor
 
 # 指定 skill，安装到全部 Agent（非交互）
-npx skills add <owner>/AI-Tools --skill dify-manage --agent '*' -g -y
+npx skills add young-tim/AI-Tools --skill dify-manage --agent '*' -g -y
 
 # ── 本地开发 ────────────────────────────────────────────
 npx skills add ./skills/dify-manage -g -y --agent cursor
@@ -52,7 +52,7 @@ npx skills add ./skills/dify-manage -g -y --agent cursor
 
 | Skill                                | 说明                        |
 | ------------------------------------ | ------------------------- |
-| [decksmith](./skills/decksmith/)     | AI 演示稿编译器：通过 Slide IR 生成企业级幻灯片，内置主题/模板/组件，导出 HTML/PDF/可编辑 PPTX |
+| [decksmith](./skills/decksmith/)     | AI 演示稿编译器：通过 Slide IR 生成企业级幻灯片，支持参考网站/PPT/图片学习风格，导出 HTML/PDF/可编辑 PPTX |
 | [dify-manage](./skills/dify-manage/) | Dify DSL 拉取/编辑/部署；文件缓存与上传 |
 
 
