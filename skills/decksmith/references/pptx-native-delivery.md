@@ -1,26 +1,20 @@
 # PPTX-First Native Delivery
 
-Use this reference when the user prioritizes PPTX quality, polished customer-facing slides, high-design PPTX, or says HTML is not needed. The goal is a strong `.pptx`, not HTML/PPTX parity.
+Use this reference when producing DeckSmith deliverables. The goal is a strong, editable, visually reliable `.pptx`.
 
 ## Decision Rule
 
 Use `pptx-first` when any of these are true:
 
 - The user says the final goal is a beautiful or usable PPTX.
-- The user complains that HTML and PPTX differ and asks to prioritize PPTX.
 - The deck contains service loops, roadmaps, process flows, scenario matrices, value cards, or other visuals where the default PPTX exporter would flatten the design into basic text boxes.
-- The user does not need HTML/PDF as independent deliverables.
+- The deck should be client-facing, reusable, or suitable for repeated editing.
 
-Do not use `pptx-first` only because a deck is visually important. If HTML/PDF is the primary output, keep the HTML route and disclose PPTX editability/fidelity tradeoffs.
+Use the default DeckSmith exporter only for rough drafts, simple decks, or quick structural checks.
 
 ## Visual Source Of Truth
 
-Pick one visual source:
-
-- **PPTX-first**: native PPTX is the visual source. HTML can be omitted or generated later from PPTX renders only as a preview.
-- **HTML-first**: HTML is the visual source. PPTX may be less editable or may require raster fallbacks if the user accepts that.
-
-Never promise that the default HTML renderer and default PPTX exporter will match. They are separate renderers.
+Native PPTX is the visual source. PDF/PNG renders exist only for QA and review.
 
 ## Authoring Pattern
 
@@ -55,32 +49,33 @@ For `pptxgenjs`, use a reusable helper module or deck-local script with:
 Run these checks before delivery:
 
 1. Confirm the PPTX slide count matches the requested page limit.
-2. Run `slides_test.py <deck.pptx>` with a Python environment that has the required packages, if available.
-3. Render the PPTX with headless `soffice`.
-
-   Use a temporary profile outside the committed source tree, or under the deck workspace cache. The `UserInstallation` path is only the office runtime profile; the generated PDF is written to `<preview-dir>`.
+2. Run the bundled PPTX QA helper:
 
    ```bash
-   soffice -env:UserInstallation=file://<temp-or-cache-profile-dir> \
-     --headless --convert-to pdf --outdir <preview-dir> <deck.pptx>
+   python3 {SKILL_ROOT}/scripts/pptx_qa.py <deck.pptx> \
+     --workspace <deck-workspace> \
+     --render required
    ```
 
-4. Render the PDF to PNG pages:
+   The helper writes `qa/pptx-qa-report.json`, checks PPTX package structure, and renders with LibreOffice `soffice` only when it is already installed. It does not certify visual quality by itself.
 
-   ```bash
-   pdftoppm -png -r 140 <preview.pdf> <preview-dir>/page
-   ```
+3. Do not use WPS Office for headless conversion on macOS. Its `wpsoffice` binary starts the GUI and emits Qt/runtime noise instead of acting as a reliable converter.
+4. Do not install LibreOffice, Poppler, or other render tools during final QA unless the user explicitly approves. First check whether the tool exists; if it is missing, report visual QA as blocked.
+5. Treat structural QA as a separate result, not as visual QA. A valid ZIP package, slide count, and text extraction prove the PPTX is structurally readable; they do not prove layout, clipping, overlap, or rendering quality.
+6. If `qa/pptx-qa-report.json` has `visualQa.status` of `rendered`, inspect the `visualQa.representativePages` PNG paths at full size. At minimum check cover, most text-dense slide, most visually dense slide, and closing slide; add process/architecture or scenario/value slides when those layouts exist.
+7. If the report has `visualQa.status` of `pdf-rendered`, inspect the PDF directly and disclose that PNG page screenshots were not produced.
+8. If the report has `visualQa.status` of `blocked`, stop and state exactly which renderer dependency is missing. Offer the user a choice: approve installing LibreOffice/Poppler, open the PPTX manually and provide screenshots, or accept structural-only QA with the explicit limitation.
+9. Verify no obvious clipping, overlap, broken connectors, tiny body text, or missing labels.
+10. Inspect the `.pptx` package when editability matters. A PPTX-first native build should not rely on `ppt/media/*` full-slide images unless the fallback is intentional and documented.
+11. Update `manifest.json` and `qa/qa-report.json` to reflect the actual delivery route, QA evidence, and any fallbacks.
 
-5. Inspect representative slides at full size: cover, most text-dense slide, process/architecture slide, scenario/value slide, and closing slide.
-6. Verify no obvious clipping, overlap, broken connectors, tiny body text, or missing labels.
-7. Inspect the `.pptx` package when editability matters. A PPTX-first native build should not rely on `ppt/media/*` full-slide images unless the fallback is intentional and documented.
-8. Update `manifest.json` and `qa/qa-report.json` to reflect the actual delivery route. If HTML is not maintained, set expectations clearly.
+The manual equivalent is headless `soffice` to PDF, then `pdftoppm` or PyMuPDF to PNG. Prefer the helper because it avoids fragile inline shell quoting and writes a machine-readable report. The final QA judgment is still made by inspecting the rendered pages, not by trusting the script exit code alone.
 
 ## When To Fall Back
 
 Use the default DeckSmith CLI exporter instead of native PPTX when:
 
-- The user wants fast draft slides or an HTML preview.
+- The user wants fast draft slides.
 - The layout is simple and editability matters more than design polish.
 - The deck must be generated only from registered Theme, Template, Layout, and Component abstractions.
 

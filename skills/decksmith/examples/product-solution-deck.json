@@ -15,8 +15,8 @@
     "canvasHeight": 1080,
     "pptLayout": "LAYOUT_WIDE",
     "editablePriority": "hybrid",
-    "exportHtml": true,
-    "exportPdf": true,
+    "exportHtml": false,
+    "exportPdf": false,
     "exportPptx": true
   },
   "assets": [],

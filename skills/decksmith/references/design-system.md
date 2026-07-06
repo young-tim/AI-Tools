@@ -37,7 +37,7 @@ Defaults: `density=medium`, `motion=subtle`, `variance=medium`.
 ## Color Rules
 
 - Define color roles first: background, surface, surfaceAlt, primary, secondary, accent, text, mutedText, border, chart palette, positive, warning, danger.
-- Preserve readable contrast for slide projection and PDF printing.
+- Preserve readable contrast for slide projection and rendered QA pages.
 - Use accent color sparingly for hierarchy, not decoration.
 - For charts, avoid relying on color alone; use labels, direct values, or patterns when needed.
 - If a reference uses a palette that is too low contrast, keep the character but increase contrast in semantic roles.
@@ -46,7 +46,7 @@ Defaults: `density=medium`, `motion=subtle`, `variance=medium`.
 
 - Choose heading/body pairing by audience and delivery context: formal, technical, product, sales, or analytical.
 - Preserve clear hierarchy between cover title, section title, slide title, subtitle, body, caption, metric value, and metric label.
-- Keep minimum body size at HTML 18px / PPT 13.5pt. Do not solve density by shrinking below this floor.
+- Keep minimum body size at PPT 13.5pt. Do not solve density by shrinking below this floor.
 - Use tabular or stable numeric styling for KPI and table-heavy decks when available.
 
 ## Layout And Shape Rules

@@ -1,6 +1,6 @@
 # Style QA
 
-Use this reference for decks generated from a website, PPT, image, screenshot, or moodboard reference. Run it after standard HTML/PDF/PPTX QA.
+Use this reference for decks generated from a website, PPT, image, screenshot, or moodboard reference. Run it after standard PPTX QA.
 
 ## QA Outputs
 
@@ -33,7 +33,7 @@ Also summarize material warnings in the active deck workspace `manifest.json`.
 - Typography hierarchy is stable and readable.
 - Spacing rhythm, card treatment, radius, border, and shadow feel systematic.
 - Image treatment is consistent and does not stretch or distort assets.
-- Chart styling follows the selected theme and remains readable in PDF/PPTX.
+- Chart styling follows the selected theme and remains readable in PPTX and rendered QA pages.
 
 ### Reference Alignment
 
