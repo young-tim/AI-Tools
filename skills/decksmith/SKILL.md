@@ -21,7 +21,7 @@ PPTX outputs.
 - Treat **Slide IR JSON** as the only source of truth. Do not treat HTML, PDF, or PPTX as the primary source.
 - Build narrative and page intent before visual styling. Never choose a template first and force content into it.
 - Keep title, body text, metrics, tables, charts, logos, and process nodes editable in PPTX whenever possible.
-- Store all deliverables under `.decksmith/decks/<deck-slug>/`; do not scatter generated files in the project root.
+- Store each deck's inputs, IR, outputs, assets, QA, cache, and logs under `.decksmith/decks/<deck-slug>/`; do not use `.decksmith/inputs/<deck-slug>/` or scatter generated files in the project root.
 - Use the bundled Node.js CLI for validation and compilation. HTML preview generation requires only Node.js built-ins and no package install.
 - Treat manual HTML/PDF/PPTX generation as a fallback only when the CLI cannot run.
 - Keep default themes, templates, examples, and public docs brand-neutral. Use placeholders such as `[Your Brand]` and `[Company Name]`.
@@ -30,40 +30,42 @@ PPTX outputs.
 ## Required Workflow
 
 1. Parse the user brief, source documents, data, and any visual references.
-2. If the user provides a website, PPT, image, screenshot, or moodboard as style input, read `{SKILL_ROOT}/references/style-reference-workflow.md` and create `source/style-brief.md` or `source/style-brief.json` inside the deck workspace before choosing a theme.
-3. Define the audience, purpose, delivery context, tone, and success criteria.
-4. Create an outline and assign one core message to each slide.
-5. Read `{SKILL_ROOT}/references/style-presets.md` when the user describes a design tone, color mood, visual style, industry, or asks for a deck to feel premium, minimal, technical, SaaS-like, editorial, data-heavy, dark, warm, bold, or similar.
-6. Read `{SKILL_ROOT}/references/template-decision.md` when selecting theme, template, layouts, and components.
-7. Read `{SKILL_ROOT}/references/design-system.md` when generating or adapting theme tokens, density, motion, variance, typography, color, or component styling.
-8. Generate Slide IR with `meta.slug` when a stable output name is known, then validate it with `decksmith validate --input <presentation.json>`. Without optional Ajv, validation uses built-in structural checks.
-9. Compile the default static preview with `node {SKILL_ROOT}/scripts/decksmith.mjs build --input <presentation.json> --output-root ./.decksmith --export html --qa true`. The CLI writes outputs under `.decksmith/decks/<deck-slug>/`.
-10. Export PDF or PPTX only when the user needs those formats: use `--export html,pdf,pptx` for full delivery. PDF export requires optional Playwright and Chromium.
-11. Run HTML layout QA, PPTX回渲 visual QA when PPTX is exported, and style QA. For reference-driven decks, read `{SKILL_ROOT}/references/style-qa.md`.
-12. Fix issues in this order: reduce text, adjust layout, switch layout, split slides, tune font size above the minimum, then use SVG/PNG fallback for complex visuals.
-13. Confirm the deck workspace contains `manifest.json`, `qa/qa-report.json`, and the requested exports. The CLI also maintains `.decksmith/index.json` for multi-deck discovery.
+2. Create the deck workspace at `.decksmith/decks/<deck-slug>/` before writing inputs. Store briefs, outlines, style briefs, data, and reference notes under `input/`; store the Slide IR under `ir/`; store deliverable HTML/PDF/PPTX files under `output/`.
+3. If the user provides a website, PPT, image, screenshot, or moodboard as style input, read `{SKILL_ROOT}/references/style-reference-workflow.md` and create `input/style-brief.md` or `input/style-brief.json` inside the deck workspace before choosing a theme.
+4. Define the audience, purpose, delivery context, tone, and success criteria.
+5. Create an outline and assign one core message to each slide.
+6. Read `{SKILL_ROOT}/references/style-presets.md` when the user describes a design tone, color mood, visual style, industry, or asks for a deck to feel premium, minimal, technical, SaaS-like, editorial, data-heavy, dark, warm, bold, or similar.
+7. Read `{SKILL_ROOT}/references/template-decision.md` when selecting theme, template, layouts, and components.
+8. Read `{SKILL_ROOT}/references/design-system.md` when generating or adapting theme tokens, density, motion, variance, typography, color, or component styling.
+9. Generate Slide IR with `meta.slug` when a stable output name is known, save it as `ir/presentation.json` in the deck workspace, then validate it with `decksmith validate --input <presentation.json>`. Without optional Ajv, validation uses built-in structural checks.
+10. Compile the default static preview with `node {SKILL_ROOT}/scripts/decksmith.mjs build --input <presentation.json> --output-root ./.decksmith --export html --qa true`. The CLI writes product files under `.decksmith/decks/<deck-slug>/` with deliverables in `output/`.
+11. Export PDF or PPTX only when the user needs those formats: use `--export html,pdf,pptx` for full delivery. PDF export requires optional Playwright and Chromium.
+12. Run HTML layout QA, PPTX回渲 visual QA when PPTX is exported, and style QA. For reference-driven decks, read `{SKILL_ROOT}/references/style-qa.md`.
+13. Fix issues in this order: reduce text, adjust layout, switch layout, split slides, tune font size above the minimum, then use SVG/PNG fallback for complex visuals.
+14. Confirm the deck workspace contains `manifest.json`, `qa/qa-report.json`, `ir/presentation.json`, and the requested `output/` exports. The CLI also maintains `.decksmith/index.json` for multi-deck discovery.
 
 ## Output Workspace
 
-Use this workspace shape for every build. Resolve `<deck-slug>` from CLI `--slug`, then `meta.slug`, then a normalized `meta.title`. Reusing an existing slug is an intentional update and requires `--overwrite`.
+Use this workspace shape for every build. Resolve `<deck-slug>` from CLI `--slug`, then `meta.slug`, then a normalized `meta.title`. A pre-created input-only workspace is valid. Rebuilding a workspace that already has generated outputs requires `--overwrite`, which replaces generated output, QA, preview, cache, and log files while preserving `input/`, `assets/`, and the input IR.
 
 ```text
 .decksmith/
 ├── index.json
 └── decks/
     └── <deck-slug>/
-        ├── presentation.json
-        ├── presentation.html
-        ├── presentation.pdf
-        ├── presentation.pptx
-        ├── manifest.json
-        ├── source/
+        ├── input/
         │   ├── brief.md
         │   ├── outline.json
         │   ├── style-brief.md
         │   ├── theme.json
         │   ├── template.json
         │   └── data.json
+        ├── ir/
+        │   └── presentation.json
+        ├── output/
+        │   ├── presentation.html
+        │   ├── presentation.pdf
+        │   └── presentation.pptx
         ├── assets/
         │   ├── images/
         │   ├── icons/
@@ -80,7 +82,8 @@ Use this workspace shape for every build. Resolve `<deck-slug>` from CLI `--slug
         │   ├── pptx-visual-diff.json
         │   └── style-qa-report.json
         ├── cache/
-        └── logs/
+        ├── logs/
+        └── manifest.json
 ```
 
 Cache, logs, preview screenshots, and issue screenshots should not be committed unless the user explicitly asks for evidence artifacts.
@@ -154,7 +157,8 @@ Do not make these effects the only way to express critical content: blur filters
 
 Before delivery, verify:
 
-- `presentation.json` exists in the active deck workspace and validates.
+- `ir/presentation.json` exists in the active deck workspace and validates.
+- New builds store Slide IR at `ir/presentation.json` and deliverables under `output/`; legacy root-level files are read only for compatibility.
 - HTML has no obvious overflow, overlap, missing image, missing font, or contrast issue.
 - PDF matches HTML without browser headers/footers.
 - PPTX opens in common slide editors and preserves core text/data as independent objects.

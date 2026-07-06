@@ -16,6 +16,20 @@ const INTERNAL_FILENAMES = {
   pptx: "presentation.pptx",
   manifest: "manifest.json"
 };
+const WORKSPACE_FILES = {
+  ir: path.join("ir", INTERNAL_FILENAMES.ir),
+  html: path.join("output", INTERNAL_FILENAMES.html),
+  pdf: path.join("output", INTERNAL_FILENAMES.pdf),
+  pptx: path.join("output", INTERNAL_FILENAMES.pptx),
+  manifest: INTERNAL_FILENAMES.manifest
+};
+const LEGACY_WORKSPACE_FILES = {
+  ir: INTERNAL_FILENAMES.ir,
+  html: INTERNAL_FILENAMES.html,
+  pdf: INTERNAL_FILENAMES.pdf,
+  pptx: INTERNAL_FILENAMES.pptx,
+  manifest: INTERNAL_FILENAMES.manifest
+};
 
 main(process.argv).catch((error) => {
   console.error(`decksmith: ${error.message}`);
@@ -61,7 +75,7 @@ async function main(argv) {
     }
     case "preview": {
       requireOption(options, "workspace", "preview");
-      const htmlPath = path.resolve(options.workspace, INTERNAL_FILENAMES.html);
+      const htmlPath = resolveWorkspaceFile(path.resolve(options.workspace), "html");
       if (!fs.existsSync(htmlPath)) {
         throw new Error(`HTML preview not found: ${htmlPath}`);
       }
@@ -150,31 +164,24 @@ async function buildDeck(options) {
   const warnings = [...schemaWarnings];
   const fallbacks = [];
 
-  if (fs.existsSync(workspace)) {
-    if (!options.overwrite) {
-      throw new Error(`deck workspace already exists: ${workspace}. Re-run with --overwrite to replace it.`);
-    }
-    fs.rmSync(workspace, { recursive: true, force: true });
-  }
-
-  ensureWorkspace(workspace);
+  prepareWorkspace(workspace, options);
   copyInputIr(inputPath, workspace);
   copyDeclaredAssets(ir, inputPath, workspace, warnings);
 
   const outputs = {};
   if (exports.has("html") || exports.has("pdf")) {
     const html = renderHtml(ir, registries, { warnings, fallbacks });
-    outputs.html = path.join(workspace, INTERNAL_FILENAMES.html);
+    outputs.html = path.join(workspace, WORKSPACE_FILES.html);
     fs.writeFileSync(outputs.html, html, "utf8");
   }
 
   if (exports.has("pdf")) {
-    outputs.pdf = path.join(workspace, INTERNAL_FILENAMES.pdf);
+    outputs.pdf = path.join(workspace, WORKSPACE_FILES.pdf);
     await exportPdf(outputs.html, outputs.pdf);
   }
 
   if (exports.has("pptx")) {
-    outputs.pptx = path.join(workspace, INTERNAL_FILENAMES.pptx);
+    outputs.pptx = path.join(workspace, WORKSPACE_FILES.pptx);
     await exportPptx(ir, registries, outputs.pptx, { warnings, fallbacks });
   }
 
@@ -240,7 +247,9 @@ function loadRegistries(ir) {
 function ensureWorkspace(workspace) {
   for (const dir of [
     workspace,
-    path.join(workspace, "source"),
+    path.join(workspace, "input"),
+    path.join(workspace, "ir"),
+    path.join(workspace, "output"),
     path.join(workspace, "assets", "images"),
     path.join(workspace, "assets", "icons"),
     path.join(workspace, "assets", "charts"),
@@ -257,8 +266,58 @@ function ensureWorkspace(workspace) {
   }
 }
 
+function prepareWorkspace(workspace, options) {
+  if (!fs.existsSync(workspace)) {
+    ensureWorkspace(workspace);
+    return;
+  }
+  if (workspaceHasBuildArtifacts(workspace) && !options.overwrite) {
+    throw new Error(`deck workspace already has build outputs: ${workspace}. Re-run with --overwrite to replace generated output files while preserving input and assets.`);
+  }
+  if (options.overwrite) {
+    clearBuildArtifacts(workspace);
+  }
+  ensureWorkspace(workspace);
+}
+
+function workspaceHasBuildArtifacts(workspace) {
+  return [
+    WORKSPACE_FILES.html,
+    WORKSPACE_FILES.pdf,
+    WORKSPACE_FILES.pptx,
+    WORKSPACE_FILES.manifest,
+    path.join("qa", "qa-report.json"),
+    LEGACY_WORKSPACE_FILES.html,
+    LEGACY_WORKSPACE_FILES.pdf,
+    LEGACY_WORKSPACE_FILES.pptx,
+    LEGACY_WORKSPACE_FILES.manifest
+  ].some((relativePath) => fs.existsSync(path.join(workspace, relativePath)));
+}
+
+function clearBuildArtifacts(workspace) {
+  for (const relativePath of [
+    "output",
+    "previews",
+    "qa",
+    "cache",
+    "logs",
+    WORKSPACE_FILES.manifest,
+    LEGACY_WORKSPACE_FILES.html,
+    LEGACY_WORKSPACE_FILES.pdf,
+    LEGACY_WORKSPACE_FILES.pptx,
+    LEGACY_WORKSPACE_FILES.manifest
+  ]) {
+    const targetPath = path.join(workspace, relativePath);
+    if (fs.existsSync(targetPath)) {
+      fs.rmSync(targetPath, { recursive: true, force: true });
+    }
+  }
+}
+
 function copyInputIr(inputPath, workspace) {
-  fs.copyFileSync(inputPath, path.join(workspace, INTERNAL_FILENAMES.ir));
+  const dest = path.join(workspace, WORKSPACE_FILES.ir);
+  if (path.resolve(inputPath) === path.resolve(dest)) return;
+  fs.copyFileSync(inputPath, dest);
 }
 
 function copyDeclaredAssets(ir, inputPath, workspace, warnings) {
@@ -866,17 +925,17 @@ async function runQa(workspace, options = {}) {
   const checks = [];
   const expected = options.expectedExports || inferExpectedExports(workspace);
   const paths = {
-    ir: path.join(workspace, INTERNAL_FILENAMES.ir),
-    html: path.join(workspace, INTERNAL_FILENAMES.html),
-    pdf: path.join(workspace, INTERNAL_FILENAMES.pdf),
-    pptx: path.join(workspace, INTERNAL_FILENAMES.pptx),
-    manifest: path.join(workspace, INTERNAL_FILENAMES.manifest)
+    ir: resolveWorkspaceFile(workspace, "ir"),
+    html: resolveWorkspaceFile(workspace, "html"),
+    pdf: resolveWorkspaceFile(workspace, "pdf"),
+    pptx: resolveWorkspaceFile(workspace, "pptx"),
+    manifest: resolveWorkspaceFile(workspace, "manifest")
   };
 
-  checks.push(checkFile("presentation.json", paths.ir));
-  if (expected.has("html")) checks.push(checkFile("presentation.html", paths.html));
-  if (expected.has("pdf")) checks.push(checkFile("presentation.pdf", paths.pdf));
-  if (expected.has("pptx")) checks.push(checkFile("presentation.pptx", paths.pptx));
+  checks.push(checkFile(WORKSPACE_FILES.ir, paths.ir));
+  if (expected.has("html")) checks.push(checkFile(WORKSPACE_FILES.html, paths.html));
+  if (expected.has("pdf")) checks.push(checkFile(WORKSPACE_FILES.pdf, paths.pdf));
+  if (expected.has("pptx")) checks.push(checkFile(WORKSPACE_FILES.pptx, paths.pptx));
   if (fs.existsSync(paths.html)) {
     const html = fs.readFileSync(paths.html, "utf8");
     checks.push({
@@ -908,7 +967,7 @@ async function runQa(workspace, options = {}) {
 }
 
 function inferExpectedExports(workspace) {
-  const manifestPath = path.join(workspace, INTERNAL_FILENAMES.manifest);
+  const manifestPath = resolveWorkspaceFile(workspace, "manifest");
   if (!fs.existsSync(manifestPath)) {
     return new Set(["html"]);
   }
@@ -922,7 +981,7 @@ function inferExpectedExports(workspace) {
 
 function writeManifest(workspace, data) {
   const now = new Date().toISOString();
-  const rel = (filePath) => filePath ? path.relative(workspace, filePath) : null;
+  const rel = (filePath) => filePath ? toPosixPath(path.relative(workspace, filePath)) : null;
   const manifest = {
     version: "1.0",
     generatedAt: now,
@@ -940,9 +999,9 @@ function writeManifest(workspace, data) {
       slideCount: data.ir.slides.length
     },
     sourceFiles: {
-      input: data.inputPath,
-      slideIr: INTERNAL_FILENAMES.ir,
-      schema: path.relative(workspace, path.join(SKILL_ROOT, "schema", "presentation.schema.json"))
+      input: rel(data.inputPath),
+      slideIr: toPosixPath(WORKSPACE_FILES.ir),
+      schema: rel(path.join(SKILL_ROOT, "schema", "presentation.schema.json"))
     },
     outputs: {
       html: rel(data.outputs.html),
@@ -970,16 +1029,16 @@ function updateIndex(outputRoot, manifest) {
   fs.mkdirSync(outputRoot, { recursive: true });
   const indexPath = path.join(outputRoot, "index.json");
   const existing = fs.existsSync(indexPath) ? readJson(indexPath) : { version: "1.0", decks: [] };
-  const workspaceRel = path.relative(outputRoot, manifest.workspace);
+  const workspaceRel = toPosixPath(path.relative(outputRoot, manifest.workspace));
   const entry = {
     title: manifest.deck.title,
     slug: manifest.deck.slug,
     workspace: workspaceRel,
     updatedAt: manifest.generatedAt,
     outputs: {
-      html: path.join(workspaceRel, INTERNAL_FILENAMES.html),
-      pdf: path.join(workspaceRel, INTERNAL_FILENAMES.pdf),
-      pptx: path.join(workspaceRel, INTERNAL_FILENAMES.pptx)
+      html: toPosixPath(path.join(workspaceRel, WORKSPACE_FILES.html)),
+      pdf: toPosixPath(path.join(workspaceRel, WORKSPACE_FILES.pdf)),
+      pptx: toPosixPath(path.join(workspaceRel, WORKSPACE_FILES.pptx))
     }
   };
   existing.decks = (existing.decks || []).filter((deck) => deck.slug !== manifest.deck.slug);
@@ -1073,6 +1132,16 @@ function checkFile(name, filePath) {
     status: fs.existsSync(filePath) && fs.statSync(filePath).size > 0 ? "passed" : "failed",
     message: filePath
   };
+}
+
+function resolveWorkspaceFile(workspace, key) {
+  const modern = path.join(workspace, WORKSPACE_FILES[key]);
+  if (fs.existsSync(modern)) return modern;
+  return path.join(workspace, LEGACY_WORKSPACE_FILES[key]);
+}
+
+function toPosixPath(value) {
+  return value.split(path.sep).join("/");
 }
 
 function summarizeComponent(component) {
