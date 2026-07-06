@@ -3,11 +3,14 @@ name: decksmith
 description: >-
   AI Presentation Compiler: creates enterprise slides, PPT decks, proposals, reports,
   reviews, and slide-based deliverables from Slide IR (structured JSON), with built-in
-  themes, templates, layouts, and components. Exports high-fidelity HTML preview, PDF,
-  and editable PPTX. Use when creating presentations, pitch decks, project reports,
-  meeting slides, sales proposals, data reports, technical architecture decks, or when
-  the user provides a website, PPT, image, screenshot, moodboard, or visual reference
-  to learn presentation style, effects, layout, typography, or design direction. 当用户需要制作演示稿、幻灯片、PPT、方案、报告、汇报、提案，或参考网站、PPT、图片、截图学习风格并生成演示稿时触发。
+  themes, templates, layouts, components, and PPTX-first delivery guidance. Exports
+  static HTML preview, PDF, and editable or high-design PPTX depending on delivery
+  intent. Use when creating presentations, pitch decks, project reports, meeting
+  slides, sales proposals, data reports, technical architecture decks, or when the
+  user provides a website, PPT, image, screenshot, moodboard, or visual reference to
+  learn presentation style, effects, layout, typography, or design direction. Use also
+  when the user prioritizes polished PPTX output, high-design slides,
+  presentation aesthetics, or PPTX editability. 当用户需要制作演示稿、幻灯片、PPT、方案、报告、汇报、提案，或参考网站、PPT、图片、截图学习风格并生成演示稿，或强调PPTX观赏性、高设计感、可编辑性时触发。
 ---
 
 # DeckSmith
@@ -18,14 +21,27 @@ PPTX outputs.
 
 ## Core Contract
 
-- Treat **Slide IR JSON** as the only source of truth. Do not treat HTML, PDF, or PPTX as the primary source.
+- Treat **Slide IR JSON** as the default planning and content source of truth. For PPTX-first delivery, keep the Slide IR or equivalent outline as the content source, but let the native PPTX build be the visual source of truth.
 - Build narrative and page intent before visual styling. Never choose a template first and force content into it.
 - Keep title, body text, metrics, tables, charts, logos, and process nodes editable in PPTX whenever possible.
 - Store each deck's inputs, IR, outputs, assets, QA, cache, and logs under `.decksmith/decks/<deck-slug>/`; do not use `.decksmith/inputs/<deck-slug>/` or scatter generated files in the project root.
 - Use the bundled Node.js CLI for validation and compilation. HTML preview generation requires only Node.js built-ins and no package install.
-- Treat manual HTML/PDF/PPTX generation as a fallback only when the CLI cannot run.
+- Treat manual HTML/PDF/PPTX generation as a fallback only when the CLI cannot run, except for PPTX-first delivery where native PPTX generation is the preferred route.
 - Keep default themes, templates, examples, and public docs brand-neutral. Use placeholders such as `[Your Brand]` and `[Company Name]`.
 - Do not claim pixel-perfect website cloning, arbitrary URL import, or full CSS-to-PPTX mapping. Reference materials inform the deck style; they are not copied blindly.
+- Use one visual source of truth per deliverable. Do not present independently rendered HTML and PPTX as visually equivalent unless they were verified from the same visual source.
+
+## Delivery Route Selection
+
+Choose the route before implementation:
+
+| Route | Use When | Visual Source | Primary Output |
+|-------|----------|---------------|----------------|
+| `ir-html-preview` | The user needs fast structured slides, HTML preview, or PDF from static HTML | DeckSmith HTML renderer | HTML/PDF, optional draft PPTX |
+| `pptx-first` | The user prioritizes polished PPTX, high design quality, client-facing slides, or says HTML is not needed | Native PPTX layout | PPTX |
+| `reference-style` | The user provides a website, image, PPT, screenshot, or moodboard as style input | Style brief plus selected route | Depends on delivery intent |
+
+If the user says the only goal is a beautiful, usable PPTX, use `pptx-first`. Do not optimize an HTML preview first and then expect the default PPTX exporter to preserve that design.
 
 ## Required Workflow
 
@@ -38,11 +54,12 @@ PPTX outputs.
 7. Read `{SKILL_ROOT}/references/template-decision.md` when selecting theme, template, layouts, and components.
 8. Read `{SKILL_ROOT}/references/design-system.md` when generating or adapting theme tokens, density, motion, variance, typography, color, or component styling.
 9. Generate Slide IR with `meta.slug` when a stable output name is known, save it as `ir/presentation.json` in the deck workspace, then validate it with `decksmith validate --input <presentation.json>`. Without optional Ajv, validation uses built-in structural checks.
-10. Compile the default static preview with `node {SKILL_ROOT}/scripts/decksmith.mjs build --input <presentation.json> --output-root ./.decksmith --export html --qa true`. The CLI writes product files under `.decksmith/decks/<deck-slug>/` with deliverables in `output/`.
-11. Export PDF or PPTX only when the user needs those formats: use `--export html,pdf,pptx` for full delivery. PDF export requires optional Playwright and Chromium.
-12. Run HTML layout QA, PPTX回渲 visual QA when PPTX is exported, and style QA. For reference-driven decks, read `{SKILL_ROOT}/references/style-qa.md`.
-13. Fix issues in this order: reduce text, adjust layout, switch layout, split slides, tune font size above the minimum, then use SVG/PNG fallback for complex visuals.
-14. Confirm the deck workspace contains `manifest.json`, `qa/qa-report.json`, `ir/presentation.json`, and the requested `output/` exports. The CLI also maintains `.decksmith/index.json` for multi-deck discovery.
+10. If using `pptx-first`, read `{SKILL_ROOT}/references/pptx-native-delivery.md` before authoring the PPTX. Build native PPTX objects directly; do not use HTML as an intermediate unless the user explicitly accepts raster or low-editability tradeoffs.
+11. If using the default HTML route, compile the static preview with `node {SKILL_ROOT}/scripts/decksmith.mjs build --input <presentation.json> --output-root ./.decksmith --export html --qa true`. The CLI writes product files under `.decksmith/decks/<deck-slug>/` with deliverables in `output/`.
+12. Export PDF or PPTX only when the user needs those formats: use `--export html,pdf,pptx` for full delivery on the default route. PDF export requires optional Playwright and Chromium.
+13. Run route-appropriate QA: HTML layout QA for HTML/PDF deliverables; PPTX回渲 visual QA for PPTX deliverables; style QA for reference-driven decks. For reference-driven decks, read `{SKILL_ROOT}/references/style-qa.md`.
+14. Fix issues in this order: reduce text, adjust layout, switch layout, split slides, tune font size above the minimum, then use SVG/PNG fallback for complex visuals.
+15. Confirm the deck workspace contains `manifest.json`, `qa/qa-report.json`, `ir/presentation.json` or an equivalent content source, and the requested exports. The CLI also maintains `.decksmith/index.json` for multi-deck discovery.
 
 ## Output Workspace
 
@@ -106,6 +123,7 @@ Read these files instead of recreating lists from memory:
 - Themes: `{SKILL_ROOT}/themes/*.json`
 - Templates: `{SKILL_ROOT}/templates/*.json`
 - Style preset data: `{SKILL_ROOT}/references/style-presets.csv` and `{SKILL_ROOT}/references/industry-style-rules.csv`
+- PPTX-first delivery: `{SKILL_ROOT}/references/pptx-native-delivery.md`
 - Layout registry: `{SKILL_ROOT}/components/layouts.json`
 - Component registry: `{SKILL_ROOT}/components/components.json`
 - Examples: `{SKILL_ROOT}/examples/*.json`
@@ -149,6 +167,8 @@ Fail only when key content cannot be represented
 
 Never convert an entire slide to a screenshot as the default fix. If a complex visual area is rasterized, keep slide title, key labels, and critical numbers as editable text.
 
+The default DeckSmith PPTX exporter is a structured editable draft exporter. It is not a high-design HTML-to-PPTX renderer. For polished customer-facing PPTX decks, use the `pptx-first` route and native PPTX objects.
+
 ## Unsupported As Key Content
 
 Do not make these effects the only way to express critical content: blur filters, backdrop filters, blend modes, masks, clip paths, CSS 3D transforms, WebGL, Canvas text, dynamic script-generated content, pseudo-element text, macros, executable links, or unvalidated external resources.
@@ -163,6 +183,7 @@ Before delivery, verify:
 - PDF matches HTML without browser headers/footers.
 - PPTX opens in common slide editors and preserves core text/data as independent objects.
 - HTML screenshots and PPTX回渲 screenshots are visually close for supported components.
+- For PPTX-first decks, render the final PPTX to PDF/PNG and inspect representative full-size slides. HTML parity is not required unless HTML is a requested deliverable.
 - `qa/qa-report.json` exists in the active deck workspace; reference-driven decks also include `style-qa-report.json`.
 - Any fallback is recorded in `manifest.json` and explained clearly.
 

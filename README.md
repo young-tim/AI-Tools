@@ -52,7 +52,7 @@ npx skills add ./skills/dify-manage -g -y --agent cursor
 
 | Skill                                | 说明                        |
 | ------------------------------------ | ------------------------- |
-| [decksmith](./skills/decksmith/)     | AI 演示稿编译器：通过 Slide IR 和零依赖 Node CLI 生成静态 HTML 预览；PDF/PPTX 可按需安装依赖导出 |
+| [decksmith](./skills/decksmith/)     | AI 演示稿编译器：通过 Slide IR 生成静态预览，并支持 PPTX-first 路线制作高设计感、可编辑的客户交付型 PPT |
 | [dify-manage](./skills/dify-manage/) | Dify DSL 拉取/编辑/部署；文件缓存与上传 |
 
 
