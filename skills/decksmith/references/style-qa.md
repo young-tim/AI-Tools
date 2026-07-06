@@ -4,20 +4,20 @@ Use this reference for decks generated from a website, PPT, image, screenshot, o
 
 ## QA Outputs
 
-Write `.decksmith/qa/style-qa-report.json` with:
+Write `qa/style-qa-report.json` in the active deck workspace with:
 
 ```json
 {
   "status": "passed | warning | failed",
   "referenceType": "website | ppt | image | mixed | none",
-  "styleBrief": ".decksmith/source/style-brief.md",
+  "styleBrief": "source/style-brief.md",
   "checks": [],
   "warnings": [],
   "fallbacks": []
 }
 ```
 
-Also summarize material warnings in `.decksmith/manifest.json`.
+Also summarize material warnings in the active deck workspace `manifest.json`.
 
 ## Checks
 
@@ -45,7 +45,7 @@ Also summarize material warnings in `.decksmith/manifest.json`.
 
 - Default templates and examples remain brand-neutral.
 - Source-specific logos, proprietary illustrations, exact copy, screenshots, and private data are not reused unless explicitly authorized.
-- Authorized assets are copied into `.decksmith/assets/` and listed in `manifest.json`.
+- Authorized assets are copied into the active deck workspace `assets/` directory and listed in `manifest.json`.
 - Untrusted external links, macros, scripts, or executable resources are not embedded.
 
 ### PPTX Editability

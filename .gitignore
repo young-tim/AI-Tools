@@ -6,3 +6,6 @@
 **/*.pyc
 .venv/
 .decksmith/**
+**/.decksmith/**
+**/node_modules/
+.pnpm-store/

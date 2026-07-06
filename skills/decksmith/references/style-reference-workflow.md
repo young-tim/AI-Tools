@@ -4,7 +4,7 @@ Use this reference when the user provides a website, PPT, image, screenshot, moo
 
 ## Principles
 
-- Extract style decisions into `.decksmith/source/style-brief.md` or `.decksmith/source/style-brief.json` before selecting a theme or template.
+- Extract style decisions into `source/style-brief.md` or `source/style-brief.json` in the active deck workspace before selecting a theme or template.
 - Separate reusable style signals from protected or source-specific assets. Colors, spacing rhythm, hierarchy, and visual treatment can inspire; logos, proprietary illustrations, exact copy, and distinctive brand marks require explicit user authorization.
 - Capture what matters for slides: visual hierarchy, density, typography, color roles, image language, chart style, page rhythm, and PPTX feasibility.
 - Prefer describing patterns over copying pixels. DeckSmith must still output registered layouts, components, and editable PPTX objects.
@@ -18,7 +18,7 @@ Use this reference when the user provides a website, PPT, image, screenshot, moo
 3. Record typography: heading family/style, body family/style, weight contrast, title scale, body scale, line height, capitalization, and numeric style.
 4. Record layout rhythm: canvas density, margins, grid columns, card radius, shadow/elevation, section spacing, alignment, and image-to-text ratio.
 5. Record motion/effects only as presentation guidance: reveal style, transition feel, gradient use, shadows, blur, texture, dimensionality. Mark anything hard to preserve in PPTX as a fallback risk.
-6. Do not download or reuse website assets unless authorized and safe to localize under `.decksmith/assets/`.
+6. Do not download or reuse website assets unless authorized and safe to localize under the active deck workspace `assets/` directory.
 
 ### PPT Reference
 

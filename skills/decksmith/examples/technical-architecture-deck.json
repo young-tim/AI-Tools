@@ -2,6 +2,7 @@
   "version": "1.0",
   "meta": {
     "title": "分布式AI训练平台架构设计",
+    "slug": "distributed-ai-training-architecture",
     "author": "技术架构团队",
     "language": "zh-CN",
     "ratio": "16:9",

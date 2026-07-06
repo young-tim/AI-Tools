@@ -1,0 +1,13 @@
+{
+  "name": "@ai-tools/decksmith-skill",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "decksmith": "scripts/decksmith.mjs"
+  },
+  "scripts": {
+    "decksmith": "node ./scripts/decksmith.mjs",
+    "validate": "node ./scripts/decksmith.mjs validate --input ./examples/ai-consulting-deck.json"
+  }
+}

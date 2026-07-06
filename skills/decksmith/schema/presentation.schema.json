@@ -23,6 +23,12 @@
           "minLength": 1,
           "examples": ["企业AI能力建设咨询方案"]
         },
+        "slug": {
+          "type": "string",
+          "description": "输出工作区标识（可选）。用于生成 .decksmith/decks/<slug>/，必须为小写字母、数字和连字符。",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,78}[a-z0-9]$",
+          "examples": ["enterprise-ai-capability-plan"]
+        },
         "author": {
           "type": "string",
           "description": "作者/团队名称",
@@ -186,7 +192,7 @@
           },
           "path": {
             "type": "string",
-            "description": "资产相对路径（相对于.decksmith目录）",
+            "description": "资产相对路径（相对于当前 deck 工作区，如 .decksmith/decks/<slug>/）",
             "examples": ["assets/images/logo.png", "assets/icons/check-circle.svg"]
           },
           "mimeType": {
@@ -387,7 +393,7 @@
         "type": {
           "type": "string",
           "description": "组件类型ID",
-          "enum": ["title", "subtitle", "body-text", "bullet-list", "metric-card", "image", "icon", "comparison-panel", "process-node", "timeline-node", "table", "bar-chart", "line-chart", "pie-chart", "quote", "callout", "footer", "background-art"]
+          "enum": ["title", "subtitle", "body-text", "bullet-list", "metric-card", "image", "icon", "comparison-panel", "process-node", "timeline-node", "table", "bar-chart", "line-chart", "pie-chart", "quote", "callout", "footer", "background-art", "architecture-layer", "card", "three-card", "kpi-dashboard"]
         },
         "content": {
           "type": "string",
