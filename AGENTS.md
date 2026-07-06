@@ -87,6 +87,20 @@ Schema 定义位于 `{SKILL_ROOT}/schema/presentation.schema.json`
 - 字符串中禁止使用未转义的双引号
 - 中文描述使用中文标点，但注意 JSON 字符串内的引号需转义或避免使用
 
+### 本仓库本地校验脚本
+
+优先使用无第三方依赖的 Node.js 脚本做本地校验。该脚本是 **AI-Tools 多 Skill Monorepo 的项目级维护脚本**，不属于任何单个 Skill，也不应放入 `skills/<skill-name>/scripts/`：
+
+```bash
+# 校验单个 Skill
+node scripts/quick_validate.mjs skills/<skill-name>
+
+# 校验全部 Skills
+node scripts/quick_validate.mjs skills/*
+```
+
+该脚本会校验 `SKILL.md` frontmatter、`name` 与目录名一致、`description` 中英文触发说明，以及 Skill 自有 JSON 资源语法。它用于替代依赖 `PyYAML` 的 Python quick validator。
+
 ## 创建新 Skill 的流程
 
 **必须严格按以下步骤执行：**
@@ -95,7 +109,7 @@ Schema 定义位于 `{SKILL_ROOT}/schema/presentation.schema.json`
 2. **创建目录**：在 `skills/` 下创建 `<skill-name>/` 目录
 3. **编写 SKILL.md**：包含正确的 frontmatter，description 中英文触发词完整
 4. **添加资源文件**：scripts/schema/themes/templates/components/examples 等按需创建
-5. **语法校验**：所有 JSON 文件必须通过语法验证
+5. **语法校验**：运行 `node scripts/quick_validate.mjs skills/<skill-name>`，确保 SKILL.md 与 JSON 资源通过校验
 6. **本地测试**：
    ```bash
    # 验证 Skill 能被识别
@@ -110,7 +124,7 @@ Schema 定义位于 `{SKILL_ROOT}/schema/presentation.schema.json`
 ## 修改现有 Skill 的流程
 
 1. 修改 `skills/<skill-name>/` 下的源文件
-2. 如涉及 JSON 文件，运行语法校验
+2. 运行 `node scripts/quick_validate.mjs skills/<skill-name>`；如涉及 JSON 文件，确保 JSON 资源通过语法校验
 3. 如新增/删除 Skill 或修改了说明，更新 README.md 清单
 
 ## Skills 清单维护

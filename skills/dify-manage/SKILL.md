@@ -4,6 +4,7 @@ description: >-
   Manages Dify via bundled CLI: pull/export DSL, patch working.yml, deploy,
   cache remote files, upload to Dify, run/chat workflows. Use when the user
   mentions Dify, workflow DSL, pull, deploy, dify-manage, or Dify file inputs.
+  当用户需要管理 Dify 工作流 DSL、拉取、编辑、部署、文件缓存、文件上传、运行或调试 Dify 应用时触发。
 ---
 
 # Dify 管理
