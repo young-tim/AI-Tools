@@ -237,7 +237,7 @@
       "id": "image",
       "name": "图片",
       "category": "visual",
-      "description": "图片、产品截图、照片等视觉素材展示",
+      "description": "图片、产品截图、照片、unDraw插画等视觉素材展示",
       "pptxStrategy": "native",
       "props": [
         {
@@ -245,7 +245,7 @@
           "type": "string",
           "required": true,
           "default": null,
-          "description": "图片资源asset ID或本地路径"
+          "description": "图片资源asset ID或本地路径；外部插画需先本地化到assets/images/"
         },
         {
           "name": "alt",
@@ -303,7 +303,7 @@
       "id": "icon",
       "name": "图标",
       "category": "visual",
-      "description": "矢量图标，用于辅助视觉引导和信息层级",
+      "description": "Lucide矢量图标，用于辅助视觉引导和信息层级",
       "pptxStrategy": "svg",
       "props": [
         {
@@ -311,7 +311,7 @@
           "type": "string",
           "required": true,
           "default": null,
-          "description": "图标名称/ID，对应图标库"
+          "description": "Lucide图标名称/ID"
         },
         {
           "name": "size",
@@ -326,7 +326,7 @@
           "type": "string",
           "required": false,
           "default": null,
-          "description": "自定义图标SVG文件asset ID（优先于name）"
+          "description": "自定义图标SVG文件asset ID（优先于name），需先本地化到assets/icons/"
         }
       ],
       "example": {

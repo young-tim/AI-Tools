@@ -202,7 +202,22 @@
           "source": {
             "type": "string",
             "description": "资产来源说明（可选）",
-            "examples": ["uploaded", "generated", "stock"]
+            "examples": ["uploaded", "generated", "Lucide", "unDraw"]
+          },
+          "sourceUrl": {
+            "type": "string",
+            "description": "资产原始来源URL（可选）",
+            "examples": ["https://lucide.dev/icons/check-circle", "https://undraw.co/illustrations"]
+          },
+          "license": {
+            "type": "string",
+            "description": "资产许可名称（可选）",
+            "examples": ["ISC", "unDraw License", "user-provided"]
+          },
+          "attributionRequired": {
+            "type": "boolean",
+            "description": "是否需要署名（可选）",
+            "default": false
           }
         }
       }

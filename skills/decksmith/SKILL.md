@@ -104,12 +104,13 @@ brief, or when the user explicitly requested a no-confirmation PPTX-native build
 1. Read `{SKILL_ROOT}/references/style-presets.md` when the user describes a design tone, color mood, visual style, industry, or asks for a deck to feel premium, minimal, technical, SaaS-like, editorial, data-heavy, dark, warm, bold, or similar.
 2. Read `{SKILL_ROOT}/references/template-decision.md` when selecting theme, template, layouts, and components.
 3. Read `{SKILL_ROOT}/references/design-system.md` when generating or adapting theme tokens, density, motion, variance, typography, color, or component styling.
-4. Generate Slide IR with `meta.slug` when a stable output name is known, save it as `ir/presentation.json` in the deck workspace, then validate it with `decksmith validate --input <presentation.json>`. Without optional Ajv, validation uses built-in structural checks.
-5. Read `{SKILL_ROOT}/references/pptx-native-delivery.md` before authoring the PPTX. Build native PPTX objects directly for delivery.
-6. Build the PPTX under `output/` and keep any deck-local generation scripts under `cache/` or `logs/` unless the user asks to keep implementation artifacts.
-7. Run PPTX visual QA: `python3 {SKILL_ROOT}/scripts/pptx_qa.py <deck.pptx> --workspace <deck-workspace> --render required`, then open and inspect the generated `visualQa.representativePages` PNG/PDF pages. The script only creates evidence and reports whether render QA is possible; it is not the visual judgment. If the helper reports visual QA as blocked, do not downgrade silently to structural QA; state the blocker and ask whether to install/enable a renderer or proceed with the limitation. For reference-driven decks, also read `{SKILL_ROOT}/references/style-qa.md`.
-8. Fix issues in this order: improve or shorten weak content, reduce text, adjust layout, switch layout, split slides, tune font size above the minimum, then use SVG/PNG fallback for complex non-critical visuals.
-9. Confirm the deck workspace contains `manifest.json`, `qa/qa-report.json`, `ir/presentation.json` or an equivalent content source, and the requested PPTX.
+4. Read `{SKILL_ROOT}/references/asset-sources.md` when choosing icons, illustrations, or third-party visual assets.
+5. Generate Slide IR with `meta.slug` when a stable output name is known, save it as `ir/presentation.json` in the deck workspace, then validate it with `decksmith validate --input <presentation.json>`. Without optional Ajv, validation uses built-in structural checks.
+6. Read `{SKILL_ROOT}/references/pptx-native-delivery.md` before authoring the PPTX. Build native PPTX objects directly for delivery.
+7. Build the PPTX under `output/` and keep any deck-local generation scripts under `cache/` or `logs/` unless the user asks to keep implementation artifacts.
+8. Run PPTX visual QA: `python3 {SKILL_ROOT}/scripts/pptx_qa.py <deck.pptx> --workspace <deck-workspace> --render required`, then open and inspect the generated `visualQa.representativePages` PNG/PDF pages. The script only creates evidence and reports whether render QA is possible; it is not the visual judgment. If the helper reports visual QA as blocked, do not downgrade silently to structural QA; state the blocker and ask whether to install/enable a renderer or proceed with the limitation. For reference-driven decks, also read `{SKILL_ROOT}/references/style-qa.md`.
+9. Fix issues in this order: improve or shorten weak content, reduce text, adjust layout, switch layout, split slides, tune font size above the minimum, then use SVG/PNG fallback for complex non-critical visuals.
+10. Confirm the deck workspace contains `manifest.json`, `qa/qa-report.json`, `ir/presentation.json` or an equivalent content source, and the requested PPTX.
 
 ## Output Workspace
 
@@ -146,6 +147,7 @@ log files while preserving `input/`, `assets/`, and the input IR.
         │   ├── icons/
         │   ├── charts/
         │   ├── fonts/
+        │   ├── ATTRIBUTIONS.md
         │   └── generated/
         ├── qa/
         │   ├── qa-report.json
@@ -181,6 +183,7 @@ Read these files instead of recreating lists from memory:
 - Templates: `{SKILL_ROOT}/templates/*.json`
 - Style preset data: `{SKILL_ROOT}/references/style-presets.csv` and `{SKILL_ROOT}/references/industry-style-rules.csv`
 - PPTX-first delivery: `{SKILL_ROOT}/references/pptx-native-delivery.md`
+- Asset source guidance: `{SKILL_ROOT}/references/asset-sources.md`
 - Layout registry: `{SKILL_ROOT}/components/layouts.json`
 - Component registry: `{SKILL_ROOT}/components/components.json`
 - Examples: `{SKILL_ROOT}/examples/*.json`
@@ -202,6 +205,15 @@ V1 built-ins include 5 themes, 6 templates, 18 layouts, and 18 components. Use r
 - Charts must state a clear conclusion and include units, time range, source, and key labels when relevant.
 - Each slide should earn its place: remove slides that do not change what the audience knows, believes, or decides.
 - Prefer concrete nouns, numbers, timelines, ownership, risks, and decisions over generic claims.
+
+## Asset Source Rules
+
+- Use Lucide as the default and only built-in icon source. Reference Lucide names in `icon.props.name`, or use a localized SVG asset in `icon.props.src` when a specific icon file is already available.
+- Use icons only when they clarify scanning, status, category, or hierarchy. When a matching Lucide icon is unavailable or would feel generic, fall back to a native PPT shape or a simple numbered marker.
+- Use unDraw only as an optional illustration source for human, service, education, workflow, or light product storytelling slides. Do not use unDraw as the default for formal board, finance, legal, compliance, or dense technical decks.
+- Do not hotlink external assets. Download authorized Lucide SVGs and unDraw images into the active deck workspace under `assets/icons/` or `assets/images/` before referencing them in Slide IR.
+- Record third-party asset provenance in Slide IR `assets[]` and in `assets/ATTRIBUTIONS.md`, including source name, source URL, license name, and whether attribution is required.
+- For unDraw, do not redistribute a compiled illustration pack, build a competing asset service, or use the assets for AI/ML training datasets. Use it only as localized presentation artwork inside a deck.
 
 ## Rendering Rules
 
