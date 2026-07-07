@@ -26,6 +26,7 @@ or visual reference into a structured, editable, high-design PPTX deck.
 - Improve content usefulness before polishing visuals: sharpen claims, remove weak filler, choose evidence, and make each slide answer a real audience question.
 - Keep title, body text, metrics, tables, charts, logos, and process nodes editable in PPTX whenever possible.
 - Store each deck's inputs, IR, outputs, assets, QA, cache, and logs under `.decksmith/decks/<deck-slug>/`; do not use `.decksmith/inputs/<deck-slug>/` or scatter generated files in the project root.
+- When a new deck request resolves to a project name or slug that already exists, create the next numbered workspace such as `<deck-slug>-2`, `<deck-slug>-3`, and so on. Reuse the original slug only when the user explicitly asks to overwrite or continue that exact workspace.
 - Use the bundled Node.js CLI for Slide IR validation and draft PPTX export when useful, but use native PPTX authoring for polished delivery.
 - Treat manual deck-local PPTX generation as the preferred route for high-design deliverables when the default exporter is too generic.
 - Keep default themes, templates, examples, and public docs brand-neutral. Use placeholders such as `[Your Brand]` and `[Company Name]`.
@@ -77,7 +78,7 @@ Exception: when the user explicitly asks for a quick draft, rough structure, or 
 
 ## Output Workspace
 
-Use this workspace shape for every build. Resolve `<deck-slug>` from CLI `--slug`, then `meta.slug`, then a normalized `meta.title`. A pre-created input-only workspace is valid. Rebuilding a workspace that already has generated outputs requires `--overwrite`, which replaces generated output, QA, preview, cache, and log files while preserving `input/`, `assets/`, and the input IR.
+Use this workspace shape for every build. Resolve `<deck-slug>` from CLI `--slug`, then `meta.slug`, then a normalized `meta.title`. If that slug already exists for a new deck, use the next available numbered slug (`<deck-slug>-2`, `<deck-slug>-3`, etc.) instead of mixing project files. A pre-created input-only workspace is valid when the input IR is already inside that workspace. Rebuilding a workspace that already has generated outputs requires `--overwrite`, which replaces generated output, QA, preview, cache, and log files while preserving `input/`, `assets/`, and the input IR.
 
 ```text
 .decksmith/

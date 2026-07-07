@@ -157,12 +157,17 @@ async function buildDeck(options) {
   const inputPath = path.resolve(options.input);
   const { ir, schemaWarnings } = await loadAndValidateIr(inputPath);
   const registries = loadRegistries(ir);
-  const slug = assertSlug(options.slug || ir.meta?.slug || slugify(ir.meta?.title || "deck"));
+  const requestedSlug = assertSlug(options.slug || ir.meta?.slug || slugify(ir.meta?.title || "deck"));
   const outputRoot = path.resolve(options.outputRoot || DEFAULT_OUTPUT_ROOT);
+  const slug = resolveBuildTargetSlug(outputRoot, requestedSlug, options, inputPath);
   const workspace = path.join(outputRoot, "decks", slug);
   const exports = parseExports(options.export, ir.settings || {});
   const warnings = [...schemaWarnings];
   const fallbacks = [];
+
+  if (slug !== requestedSlug) {
+    warnings.push(`deck slug "${requestedSlug}" already exists; created numbered workspace "${slug}" instead`);
+  }
 
   prepareWorkspace(workspace, options);
   copyInputIr(inputPath, workspace);
@@ -278,6 +283,38 @@ function prepareWorkspace(workspace, options) {
     clearBuildArtifacts(workspace);
   }
   ensureWorkspace(workspace);
+}
+
+function resolveBuildTargetSlug(outputRoot, baseSlug, options, inputPath) {
+  if (options.overwrite) return baseSlug;
+
+  const baseWorkspace = path.join(outputRoot, "decks", baseSlug);
+  if (!fs.existsSync(baseWorkspace)) return baseSlug;
+
+  const inputIsInBaseWorkspace = isPathInside(inputPath, baseWorkspace);
+  if (inputIsInBaseWorkspace && !workspaceHasBuildArtifacts(baseWorkspace)) {
+    return baseSlug;
+  }
+
+  for (let index = 2; index < 1000; index += 1) {
+    const candidate = assertSlug(withNumericSuffix(baseSlug, index));
+    const candidateWorkspace = path.join(outputRoot, "decks", candidate);
+    if (!fs.existsSync(candidateWorkspace)) return candidate;
+  }
+
+  throw new Error(`could not find an available deck slug for: ${baseSlug}`);
+}
+
+function withNumericSuffix(slug, index) {
+  const suffix = `-${index}`;
+  const maxLength = 80;
+  const root = slug.slice(0, maxLength - suffix.length).replace(/-+$/g, "") || "deck";
+  return `${root}${suffix}`;
+}
+
+function isPathInside(filePath, directoryPath) {
+  const relativePath = path.relative(path.resolve(directoryPath), path.resolve(filePath));
+  return relativePath === "" || (!!relativePath && !relativePath.startsWith("..") && !path.isAbsolute(relativePath));
 }
 
 function workspaceHasBuildArtifacts(workspace) {
