@@ -11,6 +11,7 @@ Write `qa/style-qa-report.json` in the active deck workspace with:
   "status": "passed | warning | failed",
   "referenceType": "website | ppt | image | mixed | none",
   "styleBrief": "input/style-brief.md",
+  "referenceEvidence": "input/reference-evidence.json",
   "checks": [],
   "warnings": [],
   "fallbacks": []
@@ -24,6 +25,9 @@ Also summarize material warnings in the active deck workspace `manifest.json`.
 ### Style Brief
 
 - `style-brief` exists when a reference was provided.
+- `reference-evidence` exists and shows that the actual website, PPT, image,
+  screenshot, or moodboard was visually inspected.
+- Website references are not assessed from text extraction alone.
 - Reference type, reusable signals, non-reusable assets, and DeckSmith mapping are documented.
 - Chosen theme/template/layouts match the brief and the deck purpose.
 
@@ -56,7 +60,10 @@ Also summarize material warnings in the active deck workspace `manifest.json`.
 
 ## Severity
 
-- `failed`: missing style brief for a reference-driven deck, unreadable output, unauthorized protected asset reuse, or key content only available as a broken/rasterized artifact.
+- `failed`: missing style brief for a reference-driven deck, missing visual
+  reference evidence, text-only website/style assessment, unreadable output,
+  unauthorized protected asset reuse, or key content only available as a
+  broken/rasterized artifact.
 - `warning`: style match is weak, fallback is used for non-critical visuals, or reference divergence is acceptable but should be disclosed.
 - `passed`: reference style is captured, mapped, and delivered without compromising DeckSmith structure or PPTX editability.
 

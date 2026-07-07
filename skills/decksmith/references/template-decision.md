@@ -10,7 +10,7 @@ before confirmation.
 1. Confirm the deck job: inform, persuade, sell, report, review, teach, align, or decide.
 2. Confirm audience: executive, customer, technical, operations, product, investor, internal team, or mixed.
 3. Confirm content center: strategy, product, sales, data, architecture, roadmap, project status, or training.
-4. Read `input/style-brief.*` in the active deck workspace if present.
+4. Read `input/style-brief.*` and `input/reference-evidence.*` in the active deck workspace if present.
 5. Read `{SKILL_ROOT}/references/style-presets.md` if the request contains a visual tone, industry style, or color mood.
 6. Select template for narrative structure.
 7. Select theme or `themeOverrides` for visual expression.
@@ -73,6 +73,8 @@ Avoid using `three-card` as the default for every slide. Cards are useful for pa
 
 When a reference is provided:
 
+- Require a style brief that cites inspected visual evidence before choosing
+  final theme, template, layouts, or components.
 - Map visual density to slide density before choosing layouts.
 - Map reference hierarchy to type scale and title treatment.
 - Map image language to asset treatment, not to copied assets.

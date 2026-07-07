@@ -26,6 +26,10 @@ or visual reference into a structured, editable, high-design PPTX deck.
 - Improve content usefulness before polishing visuals: sharpen claims, remove weak filler, choose evidence, and make each slide answer a real audience question.
 - Keep title, body text, metrics, tables, charts, logos, and process nodes editable in PPTX whenever possible.
 - Store each deck's lifecycle artifacts under `.decksmith/decks/<deck-slug>/`; do not use `.decksmith/inputs/<deck-slug>/` or scatter generated files in the project root. Before confirmation, keep the workspace limited to planning inputs and authorized reference assets.
+- When the user provides a website, PPT, image, screenshot, moodboard, or other
+  style reference, inspect the actual visual artifact before describing or
+  applying its style. Do not infer visual style from website text, metadata,
+  brand category, or general industry expectations alone.
 - When a new deck request resolves to a project name or slug that already exists, create the next numbered workspace such as `<deck-slug>-2`, `<deck-slug>-3`, and so on. Reuse the original slug only when the user explicitly asks to overwrite or continue that exact workspace.
 - Use the bundled Node.js CLI for Slide IR validation after confirmation, and for draft PPTX export only when the user explicitly requests a draft.
 - Treat manual deck-local PPTX generation as the preferred route for formal deliverables when the default exporter is too generic.
@@ -56,16 +60,22 @@ planning brief must cover:
 
 - goal, audience, delivery context, and success criteria
 - content scope, slide count or structure, and the proposed outline
-- style direction, visual references, and any asset reuse authorization
+- style direction, visual references, visual evidence inspected, and any asset reuse authorization
 - output format, editability expectations, constraints, and known assumptions
 
 Before confirmation, you may inspect sources, ask focused questions, create the
 deck workspace, and draft proposal artifacts under `input/`, such as
-`brief.md`, `outline.json`, and `style-brief.*`. These files are proposed
-content, not approved build input. Do not generate Slide IR, create or populate
-`ir/`, `output/`, `qa/`, or `manifest.json`, select the final template or theme,
-run validation/build/QA commands, or start PPTX visual authoring until the user
-confirms the planning brief.
+`brief.md`, `outline.json`, `style-brief.*`, and `reference-evidence.*`. These
+files are proposed content, not approved build input. Do not generate Slide IR,
+create or populate `ir/`, `output/`, `qa/`, or `manifest.json`, select the final
+template or theme, run validation/build/QA commands, or start PPTX visual
+authoring until the user confirms the planning brief.
+
+If a requested style reference cannot be opened, rendered, screenshotted, or
+visually inspected, stop and tell the user exactly what blocked inspection. Ask
+for accessible screenshots/files or permission to use the needed browser,
+network, renderer, or file conversion path. Do not create a style brief or choose
+a style direction from uninspected references.
 
 After presenting the planning brief, stop the current turn and wait for the
 user's confirmation or requested changes. Do not continue into Slide IR, PPTX
@@ -87,7 +97,7 @@ PPTX output still requires content confirmation before refinement.
 2. Create the deck workspace at `.decksmith/decks/<deck-slug>/` before writing inputs. In this phase, write only proposal artifacts under `input/` and optional reference assets under `assets/`.
 3. Define the audience, purpose, delivery context, tone, success criteria, content scope, and constraints. If any high-impact detail is missing, ask a small number of focused questions before proceeding.
 4. Create `input/brief.md` and draft `input/outline.json`. Assign one core message to each slide; for every slide, define the audience question it answers and the evidence or visual structure that makes the answer credible.
-5. If the user provides a website, PPT, image, screenshot, or moodboard as style input, read `{SKILL_ROOT}/references/style-reference-workflow.md` and create `input/style-brief.md` or `input/style-brief.json` inside the deck workspace.
+5. If the user provides a website, PPT, image, screenshot, or moodboard as style input, read `{SKILL_ROOT}/references/style-reference-workflow.md`, inspect the actual visual reference, save or describe the visual evidence in `input/reference-evidence.*`, and create `input/style-brief.md` or `input/style-brief.json` inside the deck workspace. If visual inspection is blocked, stop and ask for accessible evidence instead of inventing a style direction.
 6. Present the planning brief in the user-visible response and ask for confirmation. Stop here unless the user explicitly requested `draft-export`.
 
 ### Phase 2: Formal PPTX Build
@@ -127,6 +137,7 @@ log files while preserving `input/`, `assets/`, and the input IR.
         │   ├── brief.md
         │   ├── outline.json
         │   ├── style-brief.md
+        │   ├── reference-evidence.json
         │   ├── theme.json
         │   ├── template.json
         │   └── data.json
