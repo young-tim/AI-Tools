@@ -210,7 +210,7 @@ V1 built-ins include 5 themes, 6 templates, 18 layouts, and 18 components. Use r
 
 - Use Lucide as the default and only built-in icon source. Reference Lucide names in `icon.props.name`, or use a localized SVG asset in `icon.props.src` when a specific icon file is already available.
 - Use icons only when they clarify scanning, status, category, or hierarchy. When a matching Lucide icon is unavailable or would feel generic, fall back to a native PPT shape or a simple numbered marker.
-- Use unDraw only as an optional illustration source for human, service, education, workflow, or light product storytelling slides. Do not use unDraw as the default for formal board, finance, legal, compliance, or dense technical decks.
+- Use unDraw as an optional illustration source when a localized illustration fits the slide message, audience, tone, and evidence needs better than native shapes, charts, screenshots, or plain text.
 - Do not hotlink external assets. Download authorized Lucide SVGs and unDraw images into the active deck workspace under `assets/icons/` or `assets/images/` before referencing them in Slide IR.
 - Record third-party asset provenance in Slide IR `assets[]` and in `assets/ATTRIBUTIONS.md`, including source name, source URL, license name, and whether attribution is required.
 - For unDraw, do not redistribute a compiled illustration pack, build a competing asset service, or use the assets for AI/ML training datasets. Use it only as localized presentation artwork inside a deck.

@@ -21,15 +21,15 @@ marker instead of mixing icon libraries.
 
 ## Optional Illustration Source
 
-Use unDraw only when a slide needs a light human or conceptual illustration and
-the deck context can support that visual tone.
+Use unDraw when a slide benefits from a localized human or conceptual
+illustration and the selected artwork fits the message, audience, tone, and
+evidence needs.
 
 - Source name: `unDraw`
 - Recommended format: SVG or PNG localized under `assets/images/`
 - Typical Slide IR asset type: `image` or `svg`
 - License label: `unDraw License`
-- Use case: education, service, HR, community, onboarding, light SaaS/product storytelling
-- Avoid for: board reports, formal finance, legal/compliance, scientific evidence decks, dense architecture decks
+- Use case: purposeful people, service, education, workflow, product, or conceptual storytelling where an illustration adds clarity or tone
 
 Do not use unDraw as a filler image source. The illustration should support a
 specific message, not replace evidence, product screenshots, charts, or concrete
