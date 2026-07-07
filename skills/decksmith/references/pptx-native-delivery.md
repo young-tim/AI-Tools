@@ -4,13 +4,18 @@ Use this reference when producing DeckSmith deliverables. The goal is a strong, 
 
 ## Decision Rule
 
-Use `pptx-first` when any of these are true:
+Use `pptx-first` by default: first confirm the content plan, then produce the
+formal PPTX. Generate a draft first only when the user explicitly asks for a
+draft, quick draft, rough structure, or no-confirmation flow. `pptx-first` is
+also required when any of these are true:
 
 - The user says the final goal is a beautiful or usable PPTX.
 - The deck contains service loops, roadmaps, process flows, scenario matrices, value cards, or other visuals where the default PPTX exporter would flatten the design into basic text boxes.
 - The deck should be client-facing, reusable, or suitable for repeated editing.
 
-Use the default DeckSmith exporter only for rough drafts, simple decks, or quick structural checks.
+Use the default DeckSmith exporter only when the user explicitly wants a draft
+first, rough draft slides, no-confirmation generation, or a quick structural
+check.
 
 ## Visual Source Of Truth
 
@@ -73,9 +78,9 @@ The manual equivalent is headless `soffice` to PDF, then `pdftoppm` or PyMuPDF t
 
 ## When To Fall Back
 
-Use the default DeckSmith CLI exporter instead of native PPTX when:
+Use the default DeckSmith CLI exporter instead of native PPTX only when:
 
-- The user wants fast draft slides.
+- The user explicitly wants draft or fast draft slides.
 - The layout is simple and editability matters more than design polish.
 - The deck must be generated only from registered Theme, Template, Layout, and Component abstractions.
 

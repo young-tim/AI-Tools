@@ -35,11 +35,13 @@ or visual reference into a structured, editable, high-design PPTX deck.
 
 ## Delivery Focus
 
-Default to PPTX delivery.
+Default to confirmed, formal PPTX delivery: first confirm the content plan, then
+produce the final PPTX. Only produce a draft first when the user explicitly asks
+for a draft, quick draft, rough structure, or no-confirmation flow.
 
 | Focus | Use When | Source Of Truth | Output |
 |-------|----------|-----------------|--------|
-| `pptx-first` | Any polished deck, client-facing deck, report, proposal, architecture deck, or reusable template/component work | Native PPTX layout plus content source | PPTX |
+| `pptx-first` | Default for deck creation after content confirmation; required whenever the user has not explicitly requested a draft, and for any polished deck, client-facing deck, report, proposal, architecture deck, or reusable template/component work | Native PPTX layout plus content source | PPTX |
 | `reference-style` | The user provides a website, image, PPT, screenshot, or moodboard as style input | Style brief plus PPTX-native adaptation | PPTX |
 | `draft-export` | The user needs a fast rough structure and accepts a lower-design editable draft | Slide IR and default PPTX exporter | PPTX draft |
 
@@ -47,7 +49,10 @@ Do not optimize a separate preview first and then expect PPTX quality to follow.
 
 ## Planning Confirmation Gate
 
-For formal, client-facing, high-design, or `pptx-first` decks, create a planning brief and get user confirmation before visual generation. The confirmed planning brief must cover:
+For any deck request, confirm the content plan before generating the PPTX. This
+includes ordinary PPT requests; do not treat missing quality language as
+permission to skip confirmation or deliver draft-quality slides. The confirmed
+planning brief must cover:
 
 - goal, audience, delivery context, and success criteria
 - content scope, slide count or structure, and the proposed outline
@@ -56,7 +61,10 @@ For formal, client-facing, high-design, or `pptx-first` decks, create a planning
 
 Before confirmation, you may inspect sources, ask focused questions, create the deck workspace, and draft `input/brief.md`, `input/outline.json`, and `input/style-brief.*` when relevant. Do not generate Slide IR, select the final template or theme, or start PPTX visual authoring until the user confirms the planning brief.
 
-Exception: when the user explicitly asks for a quick draft, rough structure, or no-confirmation flow, use `draft-export`. In that case, list the default assumptions in the delivery note and state that formal polish still requires confirmation before refinement.
+Exception: only when the user explicitly asks to generate a draft first, quick
+draft, rough structure, or no-confirmation output, use `draft-export`. In that
+case, list the default assumptions in the delivery note and state that formal
+PPTX output still requires content confirmation before refinement.
 
 ## Required Workflow
 
@@ -65,7 +73,7 @@ Exception: when the user explicitly asks for a quick draft, rough structure, or 
 3. Define the audience, purpose, delivery context, tone, success criteria, content scope, and constraints. If any high-impact detail is missing, ask a small number of focused questions before proceeding.
 4. Create `input/brief.md` and draft `input/outline.json`. Assign one core message to each slide; for every slide, define the audience question it answers and the evidence or visual structure that makes the answer credible.
 5. If the user provides a website, PPT, image, screenshot, or moodboard as style input, read `{SKILL_ROOT}/references/style-reference-workflow.md` and create `input/style-brief.md` or `input/style-brief.json` inside the deck workspace.
-6. Present the planning brief for confirmation before formal `pptx-first` or high-design generation. Wait for user confirmation unless the user explicitly requested `draft-export`.
+6. Present the planning brief for confirmation before generation. Wait for user confirmation unless the user explicitly requested `draft-export`.
 7. Read `{SKILL_ROOT}/references/style-presets.md` when the user describes a design tone, color mood, visual style, industry, or asks for a deck to feel premium, minimal, technical, SaaS-like, editorial, data-heavy, dark, warm, bold, or similar.
 8. Read `{SKILL_ROOT}/references/template-decision.md` when selecting theme, template, layouts, and components.
 9. Read `{SKILL_ROOT}/references/design-system.md` when generating or adapting theme tokens, density, motion, variance, typography, color, or component styling.
