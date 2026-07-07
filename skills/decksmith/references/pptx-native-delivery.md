@@ -39,6 +39,19 @@ Use PptxGenJS for the full PPTX authoring chain with:
 - Text boxes sized for expected Chinese/English wrapping.
 - `fit: "shrink"` only as a guardrail, not as the main density strategy.
 
+Use PptxGenJS `addImage` for SVG assets. Encode the localized SVG as base64
+image data and pass it through the `data` option:
+
+```js
+const svg = fs.readFileSync(svgPath, "utf8");
+const data = `data:image/svg+xml;base64,${Buffer.from(svg, "utf8").toString("base64")}`;
+slide.addImage({ data, x, y, w, h });
+```
+
+Use this for localized Lucide icons and SVG illustrations. Keep the original SVG
+under the deck workspace `assets/` directory and record its source metadata in
+Slide IR and `assets/ATTRIBUTIONS.md`.
+
 ## Content And Design Rules
 
 - Prefer direct claims over section labels.

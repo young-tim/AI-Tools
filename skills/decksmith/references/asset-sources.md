@@ -18,6 +18,9 @@ color, and size to the active theme. If an icon does not add meaning, remove it.
 If Lucide does not have a suitable icon, use a native PPT shape or a numbered
 marker instead of mixing icon libraries.
 
+When rendering Lucide SVGs into PPTX, use PptxGenJS `addImage` with base64 SVG
+image data.
+
 ## Optional Illustration Source
 
 Use unDraw when a localized illustration fits the slide message, audience, tone,
@@ -27,6 +30,10 @@ and evidence needs.
 - Recommended format: SVG or PNG localized under `assets/images/`
 - Typical Slide IR asset type: `image` or `svg`
 - License label: `unDraw License`
+
+When using unDraw SVG assets, insert them through PptxGenJS `addImage` with
+base64 SVG image data. PNG assets can use normal image paths.
+
 Do not use unDraw as a filler image source. The illustration should support a
 specific message, not replace evidence, product screenshots, charts, or concrete
 examples.

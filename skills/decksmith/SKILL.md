@@ -230,6 +230,8 @@ PPTX objects for text, shapes, tables, charts, and slide structure. If a visual
 asset or rendering issue appears, resolve it locally in the deck build and record
 the fallback in `manifest.json` and QA notes.
 
+For SVG assets, use PptxGenJS `addImage` with base64 SVG image data.
+
 ## Unsupported As Key Content
 
 Do not make these effects the only way to express critical content: blur filters, backdrop filters, blend modes, masks, clip paths, CSS 3D transforms, WebGL, Canvas text, dynamic script-generated content, pseudo-element text, macros, executable links, or unvalidated external resources.
