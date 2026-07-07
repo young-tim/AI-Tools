@@ -12,12 +12,12 @@ These CSV files are deliberately compact. They play the same role as a design in
 ## Recall Order
 
 1. Identify deck domain, audience, delivery setting, and desired tone from the user request.
-2. If a style reference exists, read `source/style-brief.*` in the active deck workspace and extract keywords such as palette, density, image language, typography, motion, and hierarchy.
+2. If a style reference exists, read `input/style-brief.*` in the active deck workspace and extract keywords such as palette, density, image language, typography, motion, and hierarchy.
 3. Search `industry-style-rules.csv` for matching domain, audience, or trigger keywords.
 4. Search `style-presets.csv` for matching style keywords and tone words.
 5. Select one primary preset and at most one secondary preset.
 6. Map the preset to built-in `theme`, `template`, `themeOverrides`, preferred layouts, and component treatment.
-7. Record the chosen preset IDs in `source/style-brief.*` or `source/theme.json` in the active deck workspace.
+7. Record the chosen preset IDs in `input/style-brief.*` or `input/theme.json` in the active deck workspace.
 
 ## Preset Selection Rules
 

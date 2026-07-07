@@ -44,22 +44,36 @@ Default to PPTX delivery.
 
 Do not optimize a separate preview first and then expect PPTX quality to follow. If the requested deliverable is a useful, beautiful PPT, design and QA the PPTX directly.
 
+## Planning Confirmation Gate
+
+For formal, client-facing, high-design, or `pptx-first` decks, create a planning brief and get user confirmation before visual generation. The confirmed planning brief must cover:
+
+- goal, audience, delivery context, and success criteria
+- content scope, slide count or structure, and the proposed outline
+- style direction, visual references, and any asset reuse authorization
+- output format, editability expectations, constraints, and known assumptions
+
+Before confirmation, you may inspect sources, ask focused questions, create the deck workspace, and draft `input/brief.md`, `input/outline.json`, and `input/style-brief.*` when relevant. Do not generate Slide IR, select the final template or theme, or start PPTX visual authoring until the user confirms the planning brief.
+
+Exception: when the user explicitly asks for a quick draft, rough structure, or no-confirmation flow, use `draft-export`. In that case, list the default assumptions in the delivery note and state that formal polish still requires confirmation before refinement.
+
 ## Required Workflow
 
 1. Parse the user brief, source documents, data, and any visual references.
 2. Create the deck workspace at `.decksmith/decks/<deck-slug>/` before writing inputs. Store briefs, outlines, style briefs, data, and reference notes under `input/`; store the Slide IR or equivalent content source under `ir/`; store deliverable PPTX files under `output/`.
-3. If the user provides a website, PPT, image, screenshot, or moodboard as style input, read `{SKILL_ROOT}/references/style-reference-workflow.md` and create `input/style-brief.md` or `input/style-brief.json` inside the deck workspace before choosing a theme.
-4. Define the audience, purpose, delivery context, tone, and success criteria.
-5. Create an outline and assign one core message to each slide. For every slide, define the audience question it answers and the evidence or visual structure that makes the answer credible.
-6. Read `{SKILL_ROOT}/references/style-presets.md` when the user describes a design tone, color mood, visual style, industry, or asks for a deck to feel premium, minimal, technical, SaaS-like, editorial, data-heavy, dark, warm, bold, or similar.
-7. Read `{SKILL_ROOT}/references/template-decision.md` when selecting theme, template, layouts, and components.
-8. Read `{SKILL_ROOT}/references/design-system.md` when generating or adapting theme tokens, density, motion, variance, typography, color, or component styling.
-9. Generate Slide IR with `meta.slug` when a stable output name is known, save it as `ir/presentation.json` in the deck workspace, then validate it with `decksmith validate --input <presentation.json>`. Without optional Ajv, validation uses built-in structural checks.
-10. Read `{SKILL_ROOT}/references/pptx-native-delivery.md` before authoring the PPTX. Build native PPTX objects directly for polished delivery; use the default exporter only for drafts or simple decks.
-11. Build the PPTX under `output/` and keep any deck-local generation scripts under `cache/` or `logs/` unless the user asks to keep implementation artifacts.
-12. Run PPTX visual QA: `python3 {SKILL_ROOT}/scripts/pptx_qa.py <deck.pptx> --workspace <deck-workspace> --render required`, then open and inspect the generated `visualQa.representativePages` PNG/PDF pages. The script only creates evidence and reports whether render QA is possible; it is not the visual judgment. If the helper reports visual QA as blocked, do not downgrade silently to structural QA; state the blocker and ask whether to install/enable a renderer or proceed with the limitation. For reference-driven decks, also read `{SKILL_ROOT}/references/style-qa.md`.
-13. Fix issues in this order: improve or shorten weak content, reduce text, adjust layout, switch layout, split slides, tune font size above the minimum, then use SVG/PNG fallback for complex non-critical visuals.
-14. Confirm the deck workspace contains `manifest.json`, `qa/qa-report.json`, `ir/presentation.json` or an equivalent content source, and the requested PPTX.
+3. Define the audience, purpose, delivery context, tone, success criteria, content scope, and constraints. If any high-impact detail is missing, ask a small number of focused questions before proceeding.
+4. Create `input/brief.md` and draft `input/outline.json`. Assign one core message to each slide; for every slide, define the audience question it answers and the evidence or visual structure that makes the answer credible.
+5. If the user provides a website, PPT, image, screenshot, or moodboard as style input, read `{SKILL_ROOT}/references/style-reference-workflow.md` and create `input/style-brief.md` or `input/style-brief.json` inside the deck workspace.
+6. Present the planning brief for confirmation before formal `pptx-first` or high-design generation. Wait for user confirmation unless the user explicitly requested `draft-export`.
+7. Read `{SKILL_ROOT}/references/style-presets.md` when the user describes a design tone, color mood, visual style, industry, or asks for a deck to feel premium, minimal, technical, SaaS-like, editorial, data-heavy, dark, warm, bold, or similar.
+8. Read `{SKILL_ROOT}/references/template-decision.md` when selecting theme, template, layouts, and components.
+9. Read `{SKILL_ROOT}/references/design-system.md` when generating or adapting theme tokens, density, motion, variance, typography, color, or component styling.
+10. Generate Slide IR with `meta.slug` when a stable output name is known, save it as `ir/presentation.json` in the deck workspace, then validate it with `decksmith validate --input <presentation.json>`. Without optional Ajv, validation uses built-in structural checks.
+11. Read `{SKILL_ROOT}/references/pptx-native-delivery.md` before authoring the PPTX. Build native PPTX objects directly for polished delivery; use the default exporter only for drafts or simple decks.
+12. Build the PPTX under `output/` and keep any deck-local generation scripts under `cache/` or `logs/` unless the user asks to keep implementation artifacts.
+13. Run PPTX visual QA: `python3 {SKILL_ROOT}/scripts/pptx_qa.py <deck.pptx> --workspace <deck-workspace> --render required`, then open and inspect the generated `visualQa.representativePages` PNG/PDF pages. The script only creates evidence and reports whether render QA is possible; it is not the visual judgment. If the helper reports visual QA as blocked, do not downgrade silently to structural QA; state the blocker and ask whether to install/enable a renderer or proceed with the limitation. For reference-driven decks, also read `{SKILL_ROOT}/references/style-qa.md`.
+14. Fix issues in this order: improve or shorten weak content, reduce text, adjust layout, switch layout, split slides, tune font size above the minimum, then use SVG/PNG fallback for complex non-critical visuals.
+15. Confirm the deck workspace contains `manifest.json`, `qa/qa-report.json`, `ir/presentation.json` or an equivalent content source, and the requested PPTX.
 
 ## Output Workspace
 

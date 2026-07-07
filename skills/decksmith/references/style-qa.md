@@ -10,7 +10,7 @@ Write `qa/style-qa-report.json` in the active deck workspace with:
 {
   "status": "passed | warning | failed",
   "referenceType": "website | ppt | image | mixed | none",
-  "styleBrief": "source/style-brief.md",
+  "styleBrief": "input/style-brief.md",
   "checks": [],
   "warnings": [],
   "fallbacks": []

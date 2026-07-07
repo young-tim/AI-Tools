@@ -7,7 +7,7 @@ Use this reference after the outline and slide goals are known. The purpose is t
 1. Confirm the deck job: inform, persuade, sell, report, review, teach, align, or decide.
 2. Confirm audience: executive, customer, technical, operations, product, investor, internal team, or mixed.
 3. Confirm content center: strategy, product, sales, data, architecture, roadmap, project status, or training.
-4. Read `source/style-brief.*` in the active deck workspace if present.
+4. Read `input/style-brief.*` in the active deck workspace if present.
 5. Read `{SKILL_ROOT}/references/style-presets.md` if the request contains a visual tone, industry style, or color mood.
 6. Select template for narrative structure.
 7. Select theme or `themeOverrides` for visual expression.

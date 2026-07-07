@@ -4,7 +4,7 @@ Use this reference when the user provides a website, PPT, image, screenshot, moo
 
 ## Principles
 
-- Extract style decisions into `source/style-brief.md` or `source/style-brief.json` in the active deck workspace before selecting a theme or template.
+- Extract style decisions into `input/style-brief.md` or `input/style-brief.json` in the active deck workspace before selecting a theme or template.
 - Separate reusable style signals from protected or source-specific assets. Colors, spacing rhythm, hierarchy, and visual treatment can inspire; logos, proprietary illustrations, exact copy, and distinctive brand marks require explicit user authorization.
 - Capture what matters for slides: visual hierarchy, density, typography, color roles, image language, chart style, page rhythm, and PPTX feasibility.
 - Prefer describing patterns over copying pixels. DeckSmith must still output registered layouts, components, and editable PPTX objects.
