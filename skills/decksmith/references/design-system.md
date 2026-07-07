@@ -1,6 +1,9 @@
 # Design System Guidance
 
-Use this reference when adapting a theme, creating `themeOverrides`, or translating a style brief into DeckSmith presentation tokens.
+Use this reference after content confirmation when adapting a theme, creating
+`themeOverrides`, or translating a confirmed style brief into DeckSmith
+presentation tokens. During planning, describe the intended design direction but
+do not finalize design tokens or generate PPTX objects.
 
 ## Token Layers
 

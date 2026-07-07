@@ -1,6 +1,8 @@
 # PPTX-First Native Delivery
 
-Use this reference when producing DeckSmith deliverables. The goal is a strong, editable, visually reliable `.pptx`.
+Use this reference only after the content plan is confirmed, unless the user
+explicitly requested a draft. The goal is a strong, editable, visually reliable
+`.pptx`.
 
 ## Decision Rule
 
@@ -23,7 +25,7 @@ Native PPTX is the visual source. PDF/PNG renders exist only for QA and review.
 
 ## Authoring Pattern
 
-Before drawing slides:
+After confirmation and before drawing slides:
 
 1. Keep a content source: Slide IR, outline JSON, or a concise source brief.
 2. Rewrite visible slide copy for presentation use: shorter titles, fewer bullets, one message per slide.
@@ -78,11 +80,14 @@ The manual equivalent is headless `soffice` to PDF, then `pdftoppm` or PyMuPDF t
 
 ## When To Fall Back
 
-Use the default DeckSmith CLI exporter instead of native PPTX only when:
+Use the default DeckSmith CLI exporter instead of native PPTX only when the user
+explicitly asked for draft output. Do not use it for a formal PPTX merely because
+the deck is simple, the layout is easy, or registry-based generation would be
+faster.
 
 - The user explicitly wants draft or fast draft slides.
-- The layout is simple and editability matters more than design polish.
-- The deck must be generated only from registered Theme, Template, Layout, and Component abstractions.
+- The user explicitly wants no-confirmation generation.
+- The user explicitly wants a quick structural check before refinement.
 
 Use raster or image fallback only when:
 

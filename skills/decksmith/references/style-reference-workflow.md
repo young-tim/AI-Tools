@@ -1,10 +1,14 @@
 # Style Reference Workflow
 
-Use this reference when the user provides a website, PPT, image, screenshot, moodboard, or existing deck as visual inspiration. The goal is to produce a reusable presentation style brief, not to clone the source artifact.
+Use this reference when the user provides a website, PPT, image, screenshot,
+moodboard, or existing deck as visual inspiration. In the planning phase, the
+goal is to produce a style brief proposal for user confirmation, not to start
+Slide IR or PPTX generation. After confirmation, the style brief guides the
+formal PPTX build.
 
 ## Principles
 
-- Extract style decisions into `input/style-brief.md` or `input/style-brief.json` in the active deck workspace before selecting a theme or template.
+- Extract style decisions into `input/style-brief.md` or `input/style-brief.json` in the active deck workspace before selecting a final theme or template.
 - Separate reusable style signals from protected or source-specific assets. Colors, spacing rhythm, hierarchy, and visual treatment can inspire; logos, proprietary illustrations, exact copy, and distinctive brand marks require explicit user authorization.
 - Capture what matters for slides: visual hierarchy, density, typography, color roles, image language, chart style, page rhythm, and PPTX feasibility.
 - Prefer describing patterns over copying pixels. DeckSmith must still output registered layouts, components, and editable PPTX objects.
@@ -91,3 +95,6 @@ Create a concise brief with these fields:
 - The style brief maps to DeckSmith theme, template, `themeOverrides`, preferred layouts, and fallback risks.
 - Protected assets and source-specific content are listed under `doNotReuse` unless user authorization is explicit.
 - The resulting deck remains a DeckSmith presentation, not a website clone or image replica.
+- During the planning phase, present the style brief with the content plan and
+  stop for user confirmation before final template selection, Slide IR, or PPTX
+  generation.

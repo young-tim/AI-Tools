@@ -1,6 +1,10 @@
 # Style Presets
 
-Use this reference when a user asks for a visual tone, color mood, design style, industry fit, or a deck that should feel premium, technical, minimal, SaaS-like, editorial, data-heavy, warm, bold, dark, or similar.
+Use this reference when a user asks for a visual tone, color mood, design style,
+industry fit, or a deck that should feel premium, technical, minimal, SaaS-like,
+editorial, data-heavy, warm, bold, dark, or similar. During planning, presets are
+proposal material for confirmation; final preset mapping belongs after content
+confirmation.
 
 DeckSmith uses table-backed recall for style decisions:
 

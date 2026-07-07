@@ -1,6 +1,9 @@
 # Template Decision Guidance
 
-Use this reference after the outline and slide goals are known. The purpose is to map content intent and any style brief to DeckSmith themes, templates, layouts, and components.
+Use this reference after the outline and slide goals are known and the user has
+confirmed the content plan. During the planning phase, mention template or theme
+direction only as a proposal; do not make final selections or proceed to Slide IR
+before confirmation.
 
 ## Decision Order
 
