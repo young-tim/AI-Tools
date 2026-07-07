@@ -31,7 +31,7 @@ or visual reference into a structured, editable, high-design PPTX deck.
   applying its style. Do not infer visual style from website text, metadata,
   brand category, or general industry expectations alone.
 - When a new deck request resolves to a project name or slug that already exists, create the next numbered workspace such as `<deck-slug>-2`, `<deck-slug>-3`, and so on. Reuse the original slug only when the user explicitly asks to overwrite or continue that exact workspace.
-- Use the bundled Node.js CLI for Slide IR validation and native PPTX generation after confirmation.
+- Use the bundled Node.js CLI and PptxGenJS for the full PPTX authoring chain after confirmation.
 - Treat PPTX-native authoring as the only delivery route: build editable PowerPoint objects directly and verify the PPTX itself.
 - Keep default themes, templates, examples, and public docs brand-neutral. Use placeholders such as `[Your Brand]` and `[Company Name]`.
 - Do not claim pixel-perfect website cloning, arbitrary URL import, or full CSS-to-PPTX mapping. Reference materials inform the deck style; they are not copied blindly.
@@ -106,10 +106,10 @@ brief, or when the user explicitly requested a no-confirmation PPTX-native build
 3. Read `{SKILL_ROOT}/references/design-system.md` when generating or adapting theme tokens, density, motion, variance, typography, color, or component styling.
 4. Read `{SKILL_ROOT}/references/asset-sources.md` when choosing icons, illustrations, or third-party visual assets.
 5. Generate Slide IR with `meta.slug` when a stable output name is known, save it as `ir/presentation.json` in the deck workspace, then validate it with `decksmith validate --input <presentation.json>`. Without optional Ajv, validation uses built-in structural checks.
-6. Read `{SKILL_ROOT}/references/pptx-native-delivery.md` before authoring the PPTX. Build native PPTX objects directly for delivery.
+6. Read `{SKILL_ROOT}/references/pptx-native-delivery.md` before authoring the PPTX. Build the deck with PptxGenJS native PPTX objects directly for delivery.
 7. Build the PPTX under `output/` and keep any deck-local generation scripts under `cache/` or `logs/` unless the user asks to keep implementation artifacts.
 8. Run PPTX visual QA: `python3 {SKILL_ROOT}/scripts/pptx_qa.py <deck.pptx> --workspace <deck-workspace> --render required`, then open and inspect the generated `visualQa.representativePages` PNG/PDF pages. The script only creates evidence and reports whether render QA is possible; it is not the visual judgment. If the helper reports visual QA as blocked, do not downgrade silently to structural QA; state the blocker and ask whether to install/enable a renderer or proceed with the limitation. For reference-driven decks, also read `{SKILL_ROOT}/references/style-qa.md`.
-9. Fix issues in this order: improve or shorten weak content, reduce text, adjust layout, switch layout, split slides, tune font size above the minimum, then use SVG/PNG fallback for complex non-critical visuals.
+9. Fix issues in this order: improve or shorten weak content, reduce text, adjust layout, switch layout, split slides, tune font size above the minimum, then handle remaining visual issues locally.
 10. Confirm the deck workspace contains `manifest.json`, `qa/qa-report.json`, `ir/presentation.json` or an equivalent content source, and the requested PPTX.
 
 ## Output Workspace
@@ -225,24 +225,10 @@ V1 built-ins include 5 themes, 6 templates, 18 layouts, and 18 components. Use r
 
 ## PPTX Strategy
 
-Use this fallback order:
-
-```text
-Native editable PPTX object
-↓
-SVG fallback
-↓
-High-resolution PNG fallback
-↓
-Structured content plus QA warning
-↓
-Fail only when key content cannot be represented
-```
-
-Never convert an entire slide to a screenshot as the default fix. If a complex visual area is rasterized, keep slide title, key labels, and critical numbers as editable text.
-
-DeckSmith output is PPTX-native. Use native PPTX objects and deck-specific
-helpers for the final deliverable.
+DeckSmith uses PptxGenJS end to end for PPTX authoring. Prefer native editable
+PPTX objects for text, shapes, tables, charts, and slide structure. If a visual
+asset or rendering issue appears, resolve it locally in the deck build and record
+the fallback in `manifest.json` and QA notes.
 
 ## Unsupported As Key Content
 
@@ -276,10 +262,10 @@ node ./scripts/decksmith.mjs clean --workspace ./.decksmith/decks/enterprise-ai-
 python3 ./scripts/pptx_qa.py ./.decksmith/decks/enterprise-ai-capability-plan/output/presentation.pptx --workspace ./.decksmith/decks/enterprise-ai-capability-plan --render required
 ```
 
-Optional dependencies:
+Dependencies:
 
 - Strict schema validation: install `ajv`.
-- Native PPTX generation: install `pptxgenjs`.
+- PPTX authoring: install `pptxgenjs`.
 - PPTX render QA: use an existing LibreOffice `soffice`; install it only after explicit user approval.
 
-Prefer `pnpm` when installing optional dependencies. If `pnpm` is unavailable, fall back to npm equivalents.
+Prefer `pnpm` when installing dependencies. If `pnpm` is unavailable, fall back to npm equivalents.

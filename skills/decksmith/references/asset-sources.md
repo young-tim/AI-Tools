@@ -12,7 +12,6 @@ Use Lucide as the default icon source for DeckSmith:
 - Recommended format: SVG localized under `assets/icons/`
 - Typical Slide IR asset type: `icon` or `svg`
 - License label: `ISC`
-- Use case: status marks, category labels, feature cards, process nodes, sparse visual hierarchy
 
 Prefer a small, consistent set of Lucide icons per deck. Match stroke weight,
 color, and size to the active theme. If an icon does not add meaning, remove it.
@@ -21,16 +20,13 @@ marker instead of mixing icon libraries.
 
 ## Optional Illustration Source
 
-Use unDraw when a slide benefits from a localized human or conceptual
-illustration and the selected artwork fits the message, audience, tone, and
-evidence needs.
+Use unDraw when a localized illustration fits the slide message, audience, tone,
+and evidence needs.
 
 - Source name: `unDraw`
 - Recommended format: SVG or PNG localized under `assets/images/`
 - Typical Slide IR asset type: `image` or `svg`
 - License label: `unDraw License`
-- Use case: purposeful people, service, education, workflow, product, or conceptual storytelling where an illustration adds clarity or tone
-
 Do not use unDraw as a filler image source. The illustration should support a
 specific message, not replace evidence, product screenshots, charts, or concrete
 examples.
@@ -55,25 +51,3 @@ known:
 
 Also add a compact line to `assets/ATTRIBUTIONS.md` for each external source or
 asset family used in the deck.
-
-## Fallback Order
-
-For small visual markers, use this order:
-
-```text
-Lucide SVG icon
-↓
-Native PPT shape
-↓
-Simple numbered marker
-```
-
-For larger illustrations, use this order:
-
-```text
-Authorized user-provided image or screenshot
-↓
-Purposeful unDraw illustration
-↓
-Native PPT composition using shapes, text, and simple diagram elements
-```

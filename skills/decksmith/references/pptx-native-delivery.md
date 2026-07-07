@@ -31,7 +31,7 @@ After confirmation and before drawing slides:
 4. Choose 4-6 reusable native constructs such as card, metric card, process node, pill, connector, and footer.
 5. Build the PPTX directly with native text, shapes, lines, tables, and simple charts. Do not make full-slide screenshots.
 
-For `pptxgenjs`, use a reusable helper module or deck-local script with:
+Use PptxGenJS for the full PPTX authoring chain with:
 
 - Fixed 16:9 layout.
 - A token object for colors and spacing.
