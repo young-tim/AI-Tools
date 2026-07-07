@@ -262,10 +262,10 @@ node ./scripts/decksmith.mjs clean --workspace ./.decksmith/decks/enterprise-ai-
 python3 ./scripts/pptx_qa.py ./.decksmith/decks/enterprise-ai-capability-plan/output/presentation.pptx --workspace ./.decksmith/decks/enterprise-ai-capability-plan --render required
 ```
 
-Dependencies:
+Dependency handling:
 
-- Strict schema validation: install `ajv`.
-- PPTX authoring: install `pptxgenjs`.
-- PPTX render QA: use an existing LibreOffice `soffice`; install it only after explicit user approval.
-
-Prefer `pnpm` when installing dependencies. If `pnpm` is unavailable, fall back to npm equivalents.
+- Use the repository or skill runtime dependencies for DeckSmith commands.
+- Do not run `npm install`, `pnpm add`, or package-manager installs inside an active deck workspace such as `.decksmith/decks/<deck-slug>/`.
+- Strict schema validation uses `ajv` only when it is already available; otherwise built-in structural validation is acceptable.
+- PPTX authoring requires `pptxgenjs` from the repository or skill environment.
+- PPTX render QA uses an existing LibreOffice `soffice`; install it only after explicit user approval.

@@ -194,7 +194,7 @@ async function loadAndValidateIr(inputPath) {
     }
   } catch (error) {
     if (error.code === "ERR_MODULE_NOT_FOUND" || /Cannot find package 'ajv'/.test(error.message)) {
-      warnings.push('strict schema validation skipped because optional Ajv is not installed; built-in structural validation only was used');
+      warnings.push("strict schema validation unavailable; built-in structural validation only was used");
     } else {
       throw error;
     }
@@ -343,7 +343,7 @@ async function buildPptxFile(ir, registries, pptxPath, ctx) {
     ({ default: PptxGenJS } = await import("pptxgenjs"));
   } catch (error) {
     if (error.code === "ERR_MODULE_NOT_FOUND" || /Cannot find package 'pptxgenjs'/.test(error.message)) {
-      throw new Error('PPTX generation requires optional pptxgenjs. Install it when native PPTX builds are needed: "pnpm add -D pptxgenjs".');
+      throw new Error("PPTX generation requires pptxgenjs from the repository or skill runtime environment. Run the bundled DeckSmith CLI from the AI-Tools repo/skill context; do not install packages inside a deck workspace.");
     }
     throw error;
   }
