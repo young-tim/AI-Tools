@@ -4,6 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { execFileSync, spawn } from "node:child_process";
+import os from "node:os";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -64,8 +66,17 @@ async function main(argv) {
     }
     case "qa": {
       requireOption(options, "workspace", "qa");
-      const report = await runQa(path.resolve(options.workspace), { write: true });
+      const report = await runQa(path.resolve(options.workspace), {
+        write: true,
+        render: options.render || "auto"
+      });
       console.log(`${report.status}: ${options.workspace}`);
+      if (report.pptxQa?.visualQa?.representativePages) {
+        console.log("Representative pages for visual review:");
+        for (const page of report.pptxQa.visualQa.representativePages) {
+          console.log(`  ${page.reason}: ${page.png || `page-${page.page}`}`);
+        }
+      }
       return;
     }
     case "clean": {
@@ -131,12 +142,13 @@ function printHelp() {
 
 Usage:
   decksmith validate --input <presentation.json>
-  decksmith build --input <presentation.json> [--output-root ./.decksmith] [--slug <slug>] [--refresh-env] [--overwrite]
-  decksmith qa --workspace <deck-workspace>
+  decksmith build --input <presentation.json> [--output-root ./.decksmith] [--slug <slug>] [--refresh-env] [--overwrite] [--render auto|required|off]
+  decksmith qa --workspace <deck-workspace> [--render auto|required|off]
   decksmith clean --workspace <deck-workspace> [--cache-only]
 
 Builds create versioned native PPTX output under output/presentation-vN.pptx.
-Runtime paths are cached in .decksmith/env.json and refreshed with --refresh-env.`);
+Runtime paths are cached in .decksmith/env.json and refreshed with --refresh-env.
+--render controls PPTX-to-PNG visual QA: auto (default, render when tools exist), required (fail if unavailable), off (skip visual QA).`);
 }
 
 async function buildDeck(options) {
@@ -165,7 +177,9 @@ async function buildDeck(options) {
   };
   await buildPptxFile(ir, registries, outputs.pptx, { warnings, fallbacks });
 
-  const qaReport = shouldRunQa(options.qa) ? await runQa(workspace, { write: true, pptxPath: outputs.pptx }) : null;
+  const qaReport = shouldRunQa(options.qa)
+    ? await runQa(workspace, { write: true, pptxPath: outputs.pptx, render: options.render || "auto" })
+    : null;
   const manifest = writeManifest(workspace, {
     ir,
     slug,
@@ -369,7 +383,7 @@ function getRuntimeEnv(outputRoot, options) {
       execPath: findExecutable(["python3", "python"])
     },
     tools: {
-      soffice: findExecutable(["soffice"])
+      soffice: findSoffice()
     },
     packages: {
       pptxgenjs: resolvePackageSpecifier("pptxgenjs"),
@@ -401,6 +415,71 @@ function findExecutable(names) {
       }
     }
   }
+  return null;
+}
+
+/**
+ * 稳定查找 LibreOffice soffice 可执行文件。
+ * 查找顺序：PATH → macOS 标准路径 → 用户目录路径 → Spotlight 搜索 → Linux 常见路径
+ */
+function findSoffice() {
+  const home = os.homedir();
+  const isMac = process.platform === "darwin";
+  const isLinux = process.platform === "linux";
+
+  const candidates = [];
+
+  candidates.push(findExecutable(["soffice", "libreoffice"]));
+
+  if (isMac) {
+    candidates.push("/Applications/LibreOffice.app/Contents/MacOS/soffice");
+    candidates.push("/Applications/LibreOffice.app/Contents/MacOS/soffice.bin");
+    candidates.push(path.join(home, "Applications", "LibreOffice.app", "Contents", "MacOS", "soffice"));
+    candidates.push(path.join(
+      home, "Library", "Application Support", "TRAE SOLO CN", "ModularData",
+      "ai-agent", "vm", "tools", "opt", "libreoffice", "LibreOffice.app",
+      "Contents", "MacOS", "soffice"
+    ));
+    candidates.push(path.join(
+      home, "Library", "Application Support", "TRAE", "ModularData",
+      "ai-agent", "vm", "tools", "opt", "libreoffice", "LibreOffice.app",
+      "Contents", "MacOS", "soffice"
+    ));
+  }
+
+  if (isLinux) {
+    candidates.push("/usr/bin/soffice");
+    candidates.push("/usr/bin/libreoffice");
+    candidates.push("/usr/local/bin/soffice");
+    candidates.push("/opt/libreoffice/program/soffice");
+    candidates.push("/snap/bin/libreoffice");
+  }
+
+  for (const candidate of candidates) {
+    if (candidate && isExecutableFile(candidate)) {
+      return candidate;
+    }
+  }
+
+  if (isMac && findExecutable(["mdfind"])) {
+    try {
+      const result = execFileSync(
+        "mdfind",
+        ["kMDItemCFBundleIdentifier == 'org.libreoffice.script'"],
+        { encoding: "utf8", timeout: 5000, stdio: ["ignore", "pipe", "ignore"] }
+      );
+      for (const line of result.trim().split("\n")) {
+        const bundle = line.trim();
+        if (!bundle) continue;
+        const sofficePath = path.join(bundle, "Contents", "MacOS", "soffice");
+        if (isExecutableFile(sofficePath)) {
+          return sofficePath;
+        }
+      }
+    } catch {
+    }
+  }
+
   return null;
 }
 
@@ -664,13 +743,53 @@ async function runQa(workspace, options = {}) {
   checks.push(checkFile(WORKSPACE_FILES.ir, paths.ir));
   checks.push(checkFile(toPosixPath(path.relative(workspace, paths.pptx)), paths.pptx));
 
-  const status = checks.every((check) => check.status === "passed") ? "passed" : "failed";
+  let status = checks.every((check) => check.status === "passed") ? "passed" : "failed";
+  const warnings = [];
+  let pptxQaReport = null;
+
+  const renderMode = options.render || "auto";
+  if (renderMode !== "off" && fs.existsSync(paths.pptx)) {
+    const pythonPath = findExecutable(["python3", "python"]);
+    const qaScript = path.join(SKILL_ROOT, "scripts", "pptx_qa.py");
+
+    if (pythonPath && fs.existsSync(qaScript)) {
+      try {
+        pptxQaReport = await runPptxQa(pythonPath, qaScript, paths.pptx, workspace, renderMode);
+        if (pptxQaReport) {
+          if (pptxQaReport.pptx?.errors?.length) {
+            warnings.push(...pptxQaReport.pptx.errors);
+            status = "failed";
+          }
+          if (pptxQaReport.visualQa?.status === "blocked" && renderMode === "required") {
+            warnings.push("Visual QA is required but renderer was not found.");
+            status = "failed";
+          }
+          if (pptxQaReport.visualQa?.warnings?.length) {
+            warnings.push(...pptxQaReport.visualQa.warnings);
+          }
+          if (pptxQaReport.pptx?.warnings?.length) {
+            warnings.push(...pptxQaReport.pptx.warnings);
+          }
+        }
+      } catch (error) {
+        warnings.push(`PPTX QA script failed: ${error.message}`);
+      }
+    } else {
+      warnings.push(
+        pythonPath
+          ? "pptx_qa.py script not found; structural and visual QA skipped."
+          : "Python not found; PPTX structural and visual QA skipped."
+      );
+    }
+  }
+
   const report = {
     status,
     generatedAt: new Date().toISOString(),
     workspace,
     checks,
-    warnings: []
+    warnings,
+    pptxQa: pptxQaReport
   };
 
   if (options.write) {
@@ -678,6 +797,61 @@ async function runQa(workspace, options = {}) {
     fs.writeFileSync(path.join(workspace, "qa", "qa-report.json"), `${JSON.stringify(report, null, 2)}\n`, "utf8");
   }
   return report;
+}
+
+/**
+ * 调用 pptx_qa.py 进行结构检查和视觉渲染 QA。
+ * 返回解析后的 JSON 报告对象。
+ */
+function runPptxQa(pythonPath, qaScript, pptxPath, workspace, renderMode) {
+  return new Promise((resolve, reject) => {
+    const reportPath = path.join(workspace, "qa", "pptx-qa-report.json");
+    const args = [
+      qaScript,
+      pptxPath,
+      "--workspace", workspace,
+      "--report", reportPath,
+      "--render", renderMode,
+      "--timeout", "120"
+    ];
+
+    const child = spawn(pythonPath, args, {
+      stdio: ["ignore", "pipe", "pipe"],
+      encoding: "utf8"
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (data) => {
+      stdout += data.toString();
+    });
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    child.on("error", (error) => {
+      reject(new Error(`Failed to spawn pptx_qa.py: ${error.message}`));
+    });
+
+    child.on("close", (code) => {
+      if (code !== 0 && renderMode === "required") {
+        reject(new Error(`pptx_qa.py exited with code ${code}. stderr: ${stderr || stdout}`));
+        return;
+      }
+
+      try {
+        if (fs.existsSync(reportPath)) {
+          const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+          resolve(report);
+        } else {
+          resolve(null);
+        }
+      } catch (error) {
+        reject(new Error(`Failed to parse pptx-qa-report.json: ${error.message}`));
+      }
+    });
+  });
 }
 
 function writeManifest(workspace, data) {

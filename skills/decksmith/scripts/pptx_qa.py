@@ -374,14 +374,64 @@ def inspect_package(pptx: Path) -> tuple[dict[str, Any], bool]:
 
 
 def find_soffice() -> str | None:
-    candidates = [
+    """在 macOS/Linux 上稳定查找 LibreOffice soffice 可执行文件。
+
+    查找顺序：
+    1. PATH 中的 soffice（Linux 常用路径、brew 安装等）
+    2. macOS 标准 /Applications/LibreOffice.app
+    3. macOS 下用户目录的 LibreOffice（如 TRAE 内置、homebrew --cask 自定义位置）
+    4. Spotlight (mdfind) 搜索 LibreOffice bundle
+    5. 常见的 Linux 安装路径
+    """
+    candidates: list[str | None] = [
         shutil.which("soffice"),
+        shutil.which("libreoffice"),
         "/Applications/LibreOffice.app/Contents/MacOS/soffice",
         "/Applications/LibreOffice.app/Contents/MacOS/soffice.bin",
+        "/Applications/LibreOffice.app/Contents/MacOS/soffice",
     ]
+
+    home = Path.home()
+    macos_user_candidates = [
+        home / "Applications" / "LibreOffice.app" / "Contents" / "MacOS" / "soffice",
+        home / "Library" / "Application Support" / "TRAE SOLO CN" / "ModularData"
+        / "ai-agent" / "vm" / "tools" / "opt" / "libreoffice" / "LibreOffice.app"
+        / "Contents" / "MacOS" / "soffice",
+        home / "Library" / "Application Support" / "TRAE" / "ModularData"
+        / "ai-agent" / "vm" / "tools" / "opt" / "libreoffice" / "LibreOffice.app"
+        / "Contents" / "MacOS" / "soffice",
+    ]
+    candidates.extend(str(p) for p in macos_user_candidates)
+
+    linux_candidates = [
+        "/usr/bin/soffice",
+        "/usr/bin/libreoffice",
+        "/usr/local/bin/soffice",
+        "/opt/libreoffice/program/soffice",
+        "/snap/bin/libreoffice",
+    ]
+    candidates.extend(linux_candidates)
+
     for candidate in candidates:
-        if candidate and Path(candidate).exists():
+        if candidate and Path(candidate).exists() and Path(candidate).is_file():
             return str(candidate)
+
+    if shutil.which("mdfind"):
+        try:
+            result = subprocess.run(
+                ["mdfind", "kMDItemCFBundleIdentifier == 'org.libreoffice.script'"],
+                capture_output=True, text=True, timeout=5, check=False,
+            )
+            for line in result.stdout.strip().splitlines():
+                bundle = Path(line.strip())
+                if not bundle:
+                    continue
+                soffice_path = bundle / "Contents" / "MacOS" / "soffice"
+                if soffice_path.exists() and soffice_path.is_file():
+                    return str(soffice_path)
+        except Exception:
+            pass
+
     return None
 
 
