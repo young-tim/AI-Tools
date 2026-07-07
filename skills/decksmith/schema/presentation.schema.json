@@ -126,21 +126,6 @@
           "default": "hybrid",
           "examples": ["hybrid"]
         },
-        "exportHtml": {
-          "type": "boolean",
-          "description": "是否导出HTML预览",
-          "default": true
-        },
-        "exportPdf": {
-          "type": "boolean",
-          "description": "是否导出PDF",
-          "default": true
-        },
-        "exportPptx": {
-          "type": "boolean",
-          "description": "是否导出PPTX",
-          "default": true
-        },
         "defaultFontFamily": {
           "type": "string",
           "description": "默认字体族（可选）",

@@ -1,23 +1,21 @@
 # PPTX-First Native Delivery
 
 Use this reference only after the content plan is confirmed, unless the user
-explicitly requested a draft. The goal is a strong, editable, visually reliable
-`.pptx`.
+explicitly requested a no-confirmation PPTX-native build. The goal is a strong,
+editable, visually reliable `.pptx`.
 
 ## Decision Rule
 
-Use `pptx-first` by default: first confirm the content plan, then produce the
-formal PPTX. Generate a draft first only when the user explicitly asks for a
-draft, quick draft, rough structure, or no-confirmation flow. `pptx-first` is
-also required when any of these are true:
+Use `pptx-native` for all builds: first confirm the content plan, then produce
+the formal PPTX with native editable objects. `pptx-native` is required when any
+of these are true:
 
 - The user says the final goal is a beautiful or usable PPTX.
-- The deck contains service loops, roadmaps, process flows, scenario matrices, value cards, or other visuals where the default PPTX exporter would flatten the design into basic text boxes.
+- The deck contains service loops, roadmaps, process flows, scenario matrices, value cards, or other visuals that need deliberate native PPTX composition.
 - The deck should be client-facing, reusable, or suitable for repeated editing.
 
-Use the default DeckSmith exporter only when the user explicitly wants a draft
-first, rough draft slides, no-confirmation generation, or a quick structural
-check.
+If the user explicitly requests no-confirmation generation or a quick structural
+check, still generate PPTX-native output and document the assumptions.
 
 ## Visual Source Of Truth
 
@@ -79,15 +77,6 @@ Run these checks before delivery:
 The manual equivalent is headless `soffice` to PDF, then `pdftoppm` or PyMuPDF to PNG. Prefer the helper because it avoids fragile inline shell quoting and writes a machine-readable report. The final QA judgment is still made by inspecting the rendered pages, not by trusting the script exit code alone.
 
 ## When To Fall Back
-
-Use the default DeckSmith CLI exporter instead of native PPTX only when the user
-explicitly asked for draft output. Do not use it for a formal PPTX merely because
-the deck is simple, the layout is easy, or registry-based generation would be
-faster.
-
-- The user explicitly wants draft or fast draft slides.
-- The user explicitly wants no-confirmation generation.
-- The user explicitly wants a quick structural check before refinement.
 
 Use raster or image fallback only when:
 

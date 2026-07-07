@@ -14,10 +14,7 @@
     "canvasWidth": 1920,
     "canvasHeight": 1080,
     "pptLayout": "LAYOUT_WIDE",
-    "editablePriority": "hybrid",
-    "exportHtml": false,
-    "exportPdf": false,
-    "exportPptx": true
+    "editablePriority": "hybrid"
   },
   "assets": [],
   "slides": [

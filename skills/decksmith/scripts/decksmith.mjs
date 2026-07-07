@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,22 +11,16 @@ const SKILL_ROOT = path.resolve(__dirname, "..");
 const DEFAULT_OUTPUT_ROOT = ".decksmith";
 const INTERNAL_FILENAMES = {
   ir: "presentation.json",
-  html: "presentation.html",
-  pdf: "presentation.pdf",
   pptx: "presentation.pptx",
   manifest: "manifest.json"
 };
 const WORKSPACE_FILES = {
   ir: path.join("ir", INTERNAL_FILENAMES.ir),
-  html: path.join("output", INTERNAL_FILENAMES.html),
-  pdf: path.join("output", INTERNAL_FILENAMES.pdf),
   pptx: path.join("output", INTERNAL_FILENAMES.pptx),
   manifest: INTERNAL_FILENAMES.manifest
 };
 const LEGACY_WORKSPACE_FILES = {
   ir: INTERNAL_FILENAMES.ir,
-  html: INTERNAL_FILENAMES.html,
-  pdf: INTERNAL_FILENAMES.pdf,
   pptx: INTERNAL_FILENAMES.pptx,
   manifest: INTERNAL_FILENAMES.manifest
 };
@@ -59,7 +53,6 @@ async function main(argv) {
       requireOption(options, "input", "build");
       const result = await buildDeck({
         outputRoot: DEFAULT_OUTPUT_ROOT,
-        export: "html",
         qa: "true",
         ...options
       });
@@ -71,15 +64,6 @@ async function main(argv) {
       requireOption(options, "workspace", "qa");
       const report = await runQa(path.resolve(options.workspace), { write: true });
       console.log(`${report.status}: ${options.workspace}`);
-      return;
-    }
-    case "preview": {
-      requireOption(options, "workspace", "preview");
-      const htmlPath = resolveWorkspaceFile(path.resolve(options.workspace), "html");
-      if (!fs.existsSync(htmlPath)) {
-        throw new Error(`HTML preview not found: ${htmlPath}`);
-      }
-      console.log(pathToFileURL(htmlPath).href);
       return;
     }
     case "clean": {
@@ -145,12 +129,11 @@ function printHelp() {
 
 Usage:
   decksmith validate --input <presentation.json>
-  decksmith build --input <presentation.json> [--output-root ./.decksmith] [--slug <slug>] [--overwrite] [--export html|html,pptx|html,pdf]
+  decksmith build --input <presentation.json> [--output-root ./.decksmith] [--slug <slug>] [--overwrite]
   decksmith qa --workspace <deck-workspace>
-  decksmith preview --workspace <deck-workspace>
   decksmith clean --workspace <deck-workspace> [--cache-only]
 
-HTML preview builds use only Node.js built-ins. PDF and PPTX exports load optional dependencies only when requested.`);
+Builds always create native PPTX output under output/presentation.pptx.`);
 }
 
 async function buildDeck(options) {
@@ -161,7 +144,6 @@ async function buildDeck(options) {
   const outputRoot = path.resolve(options.outputRoot || DEFAULT_OUTPUT_ROOT);
   const slug = resolveBuildTargetSlug(outputRoot, requestedSlug, options, inputPath);
   const workspace = path.join(outputRoot, "decks", slug);
-  const exports = parseExports(options.export, ir.settings || {});
   const warnings = [...schemaWarnings];
   const fallbacks = [];
 
@@ -173,24 +155,12 @@ async function buildDeck(options) {
   copyInputIr(inputPath, workspace);
   copyDeclaredAssets(ir, inputPath, workspace, warnings);
 
-  const outputs = {};
-  if (exports.has("html") || exports.has("pdf")) {
-    const html = renderHtml(ir, registries, { warnings, fallbacks });
-    outputs.html = path.join(workspace, WORKSPACE_FILES.html);
-    fs.writeFileSync(outputs.html, html, "utf8");
-  }
+  const outputs = {
+    pptx: path.join(workspace, WORKSPACE_FILES.pptx)
+  };
+  await exportPptx(ir, registries, outputs.pptx, { warnings, fallbacks });
 
-  if (exports.has("pdf")) {
-    outputs.pdf = path.join(workspace, WORKSPACE_FILES.pdf);
-    await exportPdf(outputs.html, outputs.pdf);
-  }
-
-  if (exports.has("pptx")) {
-    outputs.pptx = path.join(workspace, WORKSPACE_FILES.pptx);
-    await exportPptx(ir, registries, outputs.pptx, { warnings, fallbacks });
-  }
-
-  const qaReport = shouldRunQa(options.qa) ? await runQa(workspace, { write: true, expectedExports: exports }) : null;
+  const qaReport = shouldRunQa(options.qa) ? await runQa(workspace, { write: true }) : null;
   const manifest = writeManifest(workspace, {
     ir,
     slug,
@@ -224,7 +194,7 @@ async function loadAndValidateIr(inputPath) {
     }
   } catch (error) {
     if (error.code === "ERR_MODULE_NOT_FOUND" || /Cannot find package 'ajv'/.test(error.message)) {
-      warnings.push('strict schema validation skipped because optional Ajv is not installed; HTML build used built-in structural validation only');
+      warnings.push('strict schema validation skipped because optional Ajv is not installed; built-in structural validation only was used');
     } else {
       throw error;
     }
@@ -260,9 +230,7 @@ function ensureWorkspace(workspace) {
     path.join(workspace, "assets", "charts"),
     path.join(workspace, "assets", "fonts"),
     path.join(workspace, "assets", "generated"),
-    path.join(workspace, "previews", "html"),
     path.join(workspace, "previews", "pptx"),
-    path.join(workspace, "previews", "diff"),
     path.join(workspace, "qa"),
     path.join(workspace, "cache"),
     path.join(workspace, "logs")
@@ -319,13 +287,9 @@ function isPathInside(filePath, directoryPath) {
 
 function workspaceHasBuildArtifacts(workspace) {
   return [
-    WORKSPACE_FILES.html,
-    WORKSPACE_FILES.pdf,
     WORKSPACE_FILES.pptx,
     WORKSPACE_FILES.manifest,
     path.join("qa", "qa-report.json"),
-    LEGACY_WORKSPACE_FILES.html,
-    LEGACY_WORKSPACE_FILES.pdf,
     LEGACY_WORKSPACE_FILES.pptx,
     LEGACY_WORKSPACE_FILES.manifest
   ].some((relativePath) => fs.existsSync(path.join(workspace, relativePath)));
@@ -339,8 +303,6 @@ function clearBuildArtifacts(workspace) {
     "cache",
     "logs",
     WORKSPACE_FILES.manifest,
-    LEGACY_WORKSPACE_FILES.html,
-    LEGACY_WORKSPACE_FILES.pdf,
     LEGACY_WORKSPACE_FILES.pptx,
     LEGACY_WORKSPACE_FILES.manifest
   ]) {
@@ -373,373 +335,6 @@ function copyDeclaredAssets(ir, inputPath, workspace, warnings) {
     }
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.copyFileSync(source, dest);
-  }
-}
-
-function renderHtml(ir, registries, ctx) {
-  const theme = registries.theme;
-  const colors = theme.colors || {};
-  const settings = ir.settings || {};
-  const width = settings.canvasWidth || 1920;
-  const height = settings.canvasHeight || 1080;
-  const font = theme.fonts?.body?.family || "Arial, sans-serif";
-  const titleFont = theme.fonts?.heading?.family || font;
-  const css = `
-    :root {
-      --canvas-w: ${width}px;
-      --canvas-h: ${height}px;
-      --bg: ${colors.background || "#ffffff"};
-      --surface: ${colors.surface || "#f8fafc"};
-      --surface-alt: ${colors.surfaceAlt || "#eef2f7"};
-      --text: ${colors.textPrimary || colors.primary || "#111827"};
-      --muted: ${colors.textSecondary || colors.secondary || "#4b5563"};
-      --line: ${colors.line || "#e5e7eb"};
-      --accent: ${colors.accent || colors.primary || "#1f2937"};
-      --accent-soft: ${colors.accentSoft || "#e5e7eb"};
-      --on-accent: ${colors.textOnAccent || "#ffffff"};
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #d8dee8;
-      color: var(--text);
-      font-family: ${font};
-    }
-    .deck {
-      display: grid;
-      gap: 40px;
-      justify-content: center;
-      padding: 40px;
-    }
-    .slide {
-      position: relative;
-      width: var(--canvas-w);
-      height: var(--canvas-h);
-      overflow: hidden;
-      background: var(--bg);
-      box-shadow: 0 16px 48px rgba(15, 23, 42, 0.18);
-      padding: 72px 96px;
-      page-break-after: always;
-    }
-    .slide.dark {
-      --bg: #0f172a;
-      --surface: #172033;
-      --surface-alt: #1e293b;
-      --text: #f8fafc;
-      --muted: #cbd5e1;
-      --line: #334155;
-      --accent: #38bdf8;
-      --accent-soft: rgba(56, 189, 248, 0.16);
-      background: var(--bg);
-    }
-    .slide-header { max-width: 1500px; margin-bottom: 34px; }
-    .slide-title {
-      font-family: ${titleFont};
-      font-size: ${theme.typography?.slideTitle?.size || 36}px;
-      line-height: ${theme.typography?.slideTitle?.lineHeight || 1.22};
-      font-weight: ${theme.typography?.slideTitle?.weight || 700};
-      margin: 0;
-      letter-spacing: 0;
-    }
-    .slide-subtitle {
-      margin: 12px 0 0;
-      color: var(--muted);
-      font-size: ${theme.typography?.slideSubtitle?.size || 22}px;
-      line-height: 1.45;
-    }
-    .content-grid {
-      display: grid;
-      gap: 24px;
-      align-content: stretch;
-      height: calc(100% - 150px);
-    }
-    .layout-cover .content-grid,
-    .layout-section .content-grid {
-      height: 100%;
-      align-content: center;
-      max-width: 1320px;
-    }
-    .layout-cover .component-title {
-      font-size: ${theme.typography?.coverTitle?.size || 60}px;
-      line-height: ${theme.typography?.coverTitle?.lineHeight || 1.12};
-      font-weight: ${theme.typography?.coverTitle?.weight || 700};
-      max-width: 1180px;
-    }
-    .layout-cover .component-subtitle {
-      font-size: ${theme.typography?.coverSubtitle?.size || 26}px;
-      color: var(--muted);
-      max-width: 980px;
-    }
-    .layout-two-column .content-grid,
-    .layout-comparison .content-grid,
-    .layout-image-text .content-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .layout-three-card .content-grid,
-    .layout-process-flow .content-grid,
-    .layout-roadmap .content-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .layout-kpi-dashboard .content-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .layout-architecture .content-grid,
-    .layout-timeline .content-grid,
-    .layout-table-report .content-grid,
-    .layout-agenda .content-grid {
-      grid-template-columns: 1fr;
-    }
-    .component {
-      min-width: 0;
-      color: var(--text);
-      font-size: ${theme.typography?.body?.size || 19}px;
-      line-height: ${theme.typography?.body?.lineHeight || 1.55};
-    }
-    .component-title { font-size: 30px; font-weight: 700; line-height: 1.25; }
-    .component-subtitle { font-size: 24px; line-height: 1.45; }
-    .body-text, .component-bullet-list, .card, .panel, .callout, .metric, .table-wrap {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 28px 32px;
-    }
-    .component-bullet-list ul,
-    .component-bullet-list ol,
-    .panel ul,
-    .card ul,
-    .node ul {
-      margin: 12px 0 0;
-      padding-left: 1.2em;
-    }
-    li { margin: 8px 0; }
-    .callout {
-      border-left: 8px solid var(--accent);
-      font-size: 24px;
-      line-height: 1.5;
-      background: var(--accent-soft);
-    }
-    .quote {
-      font-size: 32px;
-      line-height: 1.35;
-      border-left: 8px solid var(--accent);
-      padding-left: 32px;
-    }
-    .panel h3, .card h3, .node h3, .arch-layer h3 { margin: 0 0 14px; font-size: 25px; }
-    .metric .value { color: var(--accent); font-size: 48px; line-height: 1; font-weight: 800; }
-    .metric .label { margin-top: 12px; font-weight: 700; font-size: 19px; }
-    .metric .description { margin-top: 10px; color: var(--muted); font-size: 17px; }
-    .node, .arch-layer {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 24px 28px;
-      background: var(--surface);
-    }
-    .node .meta, .arch-layer .meta {
-      color: var(--accent);
-      font-weight: 700;
-      margin-bottom: 10px;
-      font-size: 16px;
-    }
-    .arch-items {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .chip {
-      display: inline-block;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: 8px 12px;
-      background: var(--surface-alt);
-      font-size: 16px;
-    }
-    table { width: 100%; border-collapse: collapse; font-size: 17px; }
-    th, td { border: 1px solid var(--line); padding: 12px 14px; text-align: left; vertical-align: top; }
-    th { background: var(--surface-alt); font-weight: 700; }
-    .chart-bars { display: grid; gap: 12px; margin-top: 12px; }
-    .bar-row { display: grid; grid-template-columns: 180px 1fr 60px; gap: 12px; align-items: center; }
-    .bar-track { height: 16px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; }
-    .bar-fill { height: 100%; background: var(--accent); }
-    .footer {
-      position: absolute;
-      left: 96px;
-      right: 96px;
-      bottom: 38px;
-      display: flex;
-      justify-content: space-between;
-      color: var(--muted);
-      font-size: 13px;
-    }
-    @media print {
-      body { background: #fff; }
-      .deck { display: block; padding: 0; }
-      .slide { box-shadow: none; margin: 0; }
-      @page { size: ${width}px ${height}px; margin: 0; }
-    }
-  `;
-
-  const slides = ir.slides.map((slide, index) => renderSlide(slide, index, ir, ctx)).join("\n");
-  return `<!doctype html>
-<html lang="${escapeAttr(ir.meta?.language || "en-US")}">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${escapeHtml(ir.meta?.title || "DeckSmith Presentation")}</title>
-  <style>${css}</style>
-</head>
-<body>
-  <main class="deck" data-deck-title="${escapeAttr(ir.meta?.title || "")}">
-${slides}
-  </main>
-</body>
-</html>
-`;
-}
-
-function renderSlide(slide, index, ir, ctx) {
-  const layout = `layout-${slide.layout || "single-message"}`;
-  const dark = slide.themeVariant === "dark" ? " dark" : "";
-  const showHeader = !["cover", "section"].includes(slide.layout);
-  const components = (slide.components || [])
-    .filter((component) => component.visible !== false)
-    .map((component) => renderComponent(component, ctx))
-    .join("\n");
-  const header = showHeader && (slide.title || slide.subtitle)
-    ? `<header class="slide-header">${slide.title ? `<h1 class="slide-title">${escapeHtml(slide.title)}</h1>` : ""}${slide.subtitle ? `<p class="slide-subtitle">${escapeHtml(slide.subtitle)}</p>` : ""}</header>`
-    : "";
-  const footer = renderFooter(slide, index, ir);
-  return `    <section class="slide ${layout}${dark}" data-slide-id="${escapeAttr(slide.id)}">
-      ${header}
-      <div class="content-grid">
-        ${components}
-      </div>
-      ${footer}
-    </section>`;
-}
-
-function renderComponent(component, ctx) {
-  const type = component.type;
-  switch (type) {
-    case "title":
-    case "subtitle":
-      return `<div class="component component-${type}" data-component-id="${escapeAttr(component.id)}">${escapeHtml(component.content || component.title || "")}</div>`;
-    case "body-text":
-      return `<div class="component body-text" data-component-id="${escapeAttr(component.id)}">${paragraphs(component.content)}</div>`;
-    case "bullet-list":
-      return `<div class="component component-bullet-list" data-component-id="${escapeAttr(component.id)}">${renderList(component.items, component.variant === "agenda-numbered")}</div>`;
-    case "callout":
-      return `<div class="component callout" data-component-id="${escapeAttr(component.id)}">${paragraphs(component.content || component.text || component.title || "")}</div>`;
-    case "quote":
-      return `<blockquote class="component quote" data-component-id="${escapeAttr(component.id)}">${paragraphs(component.content || component.text || "")}</blockquote>`;
-    case "comparison-panel":
-      return `<article class="component panel" data-component-id="${escapeAttr(component.id)}"><h3>${escapeHtml(component.title || "")}</h3>${renderList(component.items)}</article>`;
-    case "metric-card":
-      return `<article class="component metric" data-component-id="${escapeAttr(component.id)}"><div class="value">${escapeHtml(component.value || "")}</div><div class="label">${escapeHtml(component.label || component.title || "")}</div>${component.description ? `<div class="description">${escapeHtml(component.description)}</div>` : ""}</article>`;
-    case "process-node":
-    case "timeline-node":
-      return renderNode(component);
-    case "architecture-layer":
-      return renderArchitectureLayer(component);
-    case "card":
-      return `<article class="component card" data-component-id="${escapeAttr(component.id)}"><h3>${escapeHtml(component.title || "")}</h3>${component.description ? `<p>${escapeHtml(component.description)}</p>` : ""}${renderList(component.items)}</article>`;
-    case "three-card":
-      return `<div class="component card" data-component-id="${escapeAttr(component.id)}">${renderMiniCards(component.items || [])}</div>`;
-    case "kpi-dashboard":
-      return `<div class="component card" data-component-id="${escapeAttr(component.id)}">${renderMiniMetrics(component.items || [])}</div>`;
-    case "table":
-      return renderTable(component);
-    case "bar-chart":
-    case "line-chart":
-    case "pie-chart":
-      ctx.fallbacks.push({ componentId: component.id, type, strategy: "html-basic-chart-and-native-pptx-summary" });
-      return renderBasicChart(component);
-    case "image":
-      return renderImage(component);
-    case "icon":
-      return `<div class="component card" data-component-id="${escapeAttr(component.id)}"><h3>${escapeHtml(component.icon || component.title || "Icon")}</h3></div>`;
-    case "background-art":
-      ctx.fallbacks.push({ componentId: component.id, type, strategy: "html-background-treatment-only" });
-      return "";
-    default:
-      ctx.fallbacks.push({ componentId: component.id, type, strategy: "generic-card" });
-      return `<article class="component card" data-component-id="${escapeAttr(component.id)}"><h3>${escapeHtml(component.title || type)}</h3>${renderList(component.items)}${component.content ? paragraphs(component.content) : ""}</article>`;
-  }
-}
-
-function renderNode(component) {
-  const meta = [component.phase, component.step, component.time, component.duration, component.status].filter(Boolean).join(" · ");
-  return `<article class="component node" data-component-id="${escapeAttr(component.id)}">${meta ? `<div class="meta">${escapeHtml(meta)}</div>` : ""}<h3>${escapeHtml(component.title || "")}</h3>${component.description ? `<p>${escapeHtml(component.description)}</p>` : ""}${renderList(component.items)}</article>`;
-}
-
-function renderArchitectureLayer(component) {
-  return `<section class="component arch-layer" data-component-id="${escapeAttr(component.id)}"><div class="meta">${escapeHtml(component.variant || "layer")}</div><h3>${escapeHtml(component.title || "")}</h3><div class="arch-items">${(component.items || []).map((item) => `<span class="chip">${escapeHtml(item)}</span>`).join("")}</div></section>`;
-}
-
-function renderTable(component) {
-  const headers = component.headers || [];
-  const rows = component.rows || [];
-  return `<div class="component table-wrap" data-component-id="${escapeAttr(component.id)}"><table><thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
-}
-
-function renderMiniCards(items) {
-  if (!items.length) return "";
-  return `<div style="display:grid;grid-template-columns:repeat(${Math.min(3, items.length)}, minmax(0, 1fr));gap:16px">${items.map((item) => `<article class="node"><h3>${escapeHtml(stringifyItemTitle(item))}</h3>${item.content || item.description ? `<p>${escapeHtml(item.content || item.description)}</p>` : ""}</article>`).join("")}</div>`;
-}
-
-function renderMiniMetrics(items) {
-  if (!items.length) return "";
-  return `<div style="display:grid;grid-template-columns:repeat(${Math.min(4, items.length)}, minmax(0, 1fr));gap:16px">${items.map((item) => `<article class="metric"><div class="value">${escapeHtml(item.value || "")}</div><div class="label">${escapeHtml(item.label || item.title || "")}</div>${item.description ? `<div class="description">${escapeHtml(item.description)}</div>` : ""}</article>`).join("")}</div>`;
-}
-
-function renderBasicChart(component) {
-  const series = component.series?.[0];
-  const values = series?.data || component.data?.map((item) => item.value) || [];
-  const labels = component.categories || component.data?.map((item) => item.name) || [];
-  const max = Math.max(...values.map(Number), 1);
-  const rows = labels.map((label, index) => {
-    const value = Number(values[index] || 0);
-    const width = Math.max(2, Math.round((value / max) * 100));
-    return `<div class="bar-row"><div>${escapeHtml(label)}</div><div class="bar-track"><div class="bar-fill" style="width:${width}%"></div></div><div>${escapeHtml(String(values[index] ?? ""))}</div></div>`;
-  }).join("");
-  return `<div class="component card" data-component-id="${escapeAttr(component.id)}"><h3>${escapeHtml(component.title || "")}</h3><div class="chart-bars">${rows}</div></div>`;
-}
-
-function renderImage(component) {
-  const src = component.src || component.path || component.asset || component.assetId || "";
-  if (!src) {
-    return `<div class="component card" data-component-id="${escapeAttr(component.id)}"><h3>${escapeHtml(component.title || "Image")}</h3><p>Missing image source</p></div>`;
-  }
-  return `<figure class="component card" data-component-id="${escapeAttr(component.id)}"><img src="${escapeAttr(src)}" alt="${escapeAttr(component.alt || component.title || "")}" style="max-width:100%;max-height:100%;object-fit:contain"><figcaption>${escapeHtml(component.title || "")}</figcaption></figure>`;
-}
-
-function renderFooter(slide, index, ir) {
-  if (slide.footer?.hide) return "";
-  const footer = slide.footer || ir.footer || {};
-  const brand = footer.brandText || ir.footer?.brandText || "";
-  const page = footer.pageNumber || String(index + 1).padStart(2, "0");
-  return `<footer class="footer"><span>${escapeHtml(brand)}</span><span>${escapeHtml(page)}</span></footer>`;
-}
-
-async function exportPdf(htmlPath, pdfPath) {
-  let browser;
-  try {
-    const { chromium } = await import("playwright");
-    browser = await chromium.launch();
-    const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
-    await page.goto(pathToFileURL(htmlPath).href, { waitUntil: "networkidle" });
-    await page.pdf({
-      path: pdfPath,
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: { top: "0", bottom: "0", left: "0", right: "0" }
-    });
-  } catch (error) {
-    if (error.code === "ERR_MODULE_NOT_FOUND" || /Cannot find package 'playwright'/.test(error.message)) {
-      throw new Error('PDF export requires optional Playwright. Install it only when PDF export is needed: "pnpm add -D playwright" then "pnpm exec playwright install chromium".');
-    }
-    throw new Error(`PDF export failed. Ensure optional Playwright browsers are installed with "pnpm exec playwright install chromium" from {SKILL_ROOT}. ${error.message}`);
-  } finally {
-    if (browser) await browser.close();
   }
 }
 
@@ -960,32 +555,14 @@ function addCardText(slide, text, box, env, fill, line) {
 
 async function runQa(workspace, options = {}) {
   const checks = [];
-  const expected = options.expectedExports || inferExpectedExports(workspace);
   const paths = {
     ir: resolveWorkspaceFile(workspace, "ir"),
-    html: resolveWorkspaceFile(workspace, "html"),
-    pdf: resolveWorkspaceFile(workspace, "pdf"),
     pptx: resolveWorkspaceFile(workspace, "pptx"),
     manifest: resolveWorkspaceFile(workspace, "manifest")
   };
 
   checks.push(checkFile(WORKSPACE_FILES.ir, paths.ir));
-  if (expected.has("html")) checks.push(checkFile(WORKSPACE_FILES.html, paths.html));
-  if (expected.has("pdf")) checks.push(checkFile(WORKSPACE_FILES.pdf, paths.pdf));
-  if (expected.has("pptx")) checks.push(checkFile(WORKSPACE_FILES.pptx, paths.pptx));
-  if (fs.existsSync(paths.html)) {
-    const html = fs.readFileSync(paths.html, "utf8");
-    checks.push({
-      name: "stable-slide-ids",
-      status: html.includes("data-slide-id=") ? "passed" : "failed",
-      message: "HTML should include stable data-slide-id attributes."
-    });
-    checks.push({
-      name: "static-html-no-script",
-      status: /<script[\s>]/i.test(html) ? "failed" : "passed",
-      message: "HTML preview should remain static HTML/CSS without runtime scripts."
-    });
-  }
+  checks.push(checkFile(WORKSPACE_FILES.pptx, paths.pptx));
 
   const status = checks.every((check) => check.status === "passed") ? "passed" : "failed";
   const report = {
@@ -1001,19 +578,6 @@ async function runQa(workspace, options = {}) {
     fs.writeFileSync(path.join(workspace, "qa", "qa-report.json"), `${JSON.stringify(report, null, 2)}\n`, "utf8");
   }
   return report;
-}
-
-function inferExpectedExports(workspace) {
-  const manifestPath = resolveWorkspaceFile(workspace, "manifest");
-  if (!fs.existsSync(manifestPath)) {
-    return new Set(["html"]);
-  }
-  const manifest = readJson(manifestPath);
-  const expected = new Set();
-  for (const [format, outputPath] of Object.entries(manifest.outputs || {})) {
-    if (outputPath) expected.add(format);
-  }
-  return expected.size ? expected : new Set(["html"]);
 }
 
 function writeManifest(workspace, data) {
@@ -1041,8 +605,6 @@ function writeManifest(workspace, data) {
       schema: rel(path.join(SKILL_ROOT, "schema", "presentation.schema.json"))
     },
     outputs: {
-      html: rel(data.outputs.html),
-      pdf: rel(data.outputs.pdf),
       pptx: rel(data.outputs.pptx)
     },
     registries: {
@@ -1073,8 +635,6 @@ function updateIndex(outputRoot, manifest) {
     workspace: workspaceRel,
     updatedAt: manifest.generatedAt,
     outputs: {
-      html: toPosixPath(path.join(workspaceRel, WORKSPACE_FILES.html)),
-      pdf: toPosixPath(path.join(workspaceRel, WORKSPACE_FILES.pdf)),
       pptx: toPosixPath(path.join(workspaceRel, WORKSPACE_FILES.pptx))
     }
   };
@@ -1090,7 +650,7 @@ function cleanWorkspace(workspace, options) {
   }
   const targets = options.cacheOnly
     ? ["cache", "logs"]
-    : ["cache", "logs", path.join("previews", "html"), path.join("previews", "pptx"), path.join("previews", "diff")];
+    : ["cache", "logs", path.join("previews", "pptx")];
   for (const target of targets) {
     const targetPath = path.join(workspace, target);
     if (fs.existsSync(targetPath)) {
@@ -1099,21 +659,6 @@ function cleanWorkspace(workspace, options) {
     }
   }
   console.log(`cleaned: ${targets.join(", ")}`);
-}
-
-function parseExports(value, settings) {
-  const requested = new Set(String(value || "").split(",").map((item) => item.trim()).filter(Boolean));
-  const allowed = new Set(["html", "pdf", "pptx"]);
-  for (const format of requested) {
-    if (!allowed.has(format)) {
-      throw new Error(`unsupported export format: ${format}`);
-    }
-  }
-  if (settings.exportHtml === false) requested.delete("html");
-  if (settings.exportPdf === false) requested.delete("pdf");
-  if (settings.exportPptx === false) requested.delete("pptx");
-  if (requested.has("pdf")) requested.add("html");
-  return requested;
 }
 
 function shouldRunQa(value) {
@@ -1194,26 +739,10 @@ function summarizeComponent(component) {
   return lines.filter(Boolean).join("\n");
 }
 
-function renderList(items = [], ordered = false) {
-  if (!items.length) return "";
-  const tag = ordered ? "ol" : "ul";
-  return `<${tag}>${items.map((item) => `<li>${escapeHtml(stringifyItem(item))}</li>`).join("")}</${tag}>`;
-}
-
 function stringifyItem(item) {
   if (typeof item === "string") return item;
   if (item == null) return "";
   return item.title || item.label || item.name || item.description || JSON.stringify(item);
-}
-
-function stringifyItemTitle(item) {
-  if (typeof item === "string") return item;
-  if (item == null) return "";
-  return item.title || item.label || item.name || "";
-}
-
-function paragraphs(text = "") {
-  return String(text).split(/\n{2,}/).map((part) => `<p>${escapeHtml(part)}</p>`).join("");
 }
 
 function slugify(value) {
@@ -1269,17 +798,4 @@ function uniqueFallbacks(items) {
     seen.add(key);
     return true;
   });
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function escapeAttr(value) {
-  return escapeHtml(value).replace(/`/g, "&#96;");
 }
