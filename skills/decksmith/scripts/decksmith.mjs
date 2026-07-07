@@ -9,6 +9,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const SKILL_ROOT = path.resolve(__dirname, "..");
 const DEFAULT_OUTPUT_ROOT = ".decksmith";
+const ENV_CACHE_FILENAME = "env.json";
+const OUTPUT_PPTX_PREFIX = "presentation";
 const INTERNAL_FILENAMES = {
   ir: "presentation.json",
   pptx: "presentation.pptx",
@@ -129,11 +131,12 @@ function printHelp() {
 
 Usage:
   decksmith validate --input <presentation.json>
-  decksmith build --input <presentation.json> [--output-root ./.decksmith] [--slug <slug>] [--overwrite]
+  decksmith build --input <presentation.json> [--output-root ./.decksmith] [--slug <slug>] [--refresh-env] [--overwrite]
   decksmith qa --workspace <deck-workspace>
   decksmith clean --workspace <deck-workspace> [--cache-only]
 
-Builds always create native PPTX output under output/presentation.pptx.`);
+Builds create versioned native PPTX output under output/presentation-vN.pptx.
+Runtime paths are cached in .decksmith/env.json and refreshed with --refresh-env.`);
 }
 
 async function buildDeck(options) {
@@ -146,6 +149,7 @@ async function buildDeck(options) {
   const workspace = path.join(outputRoot, "decks", slug);
   const warnings = [...schemaWarnings];
   const fallbacks = [];
+  const runtime = getRuntimeEnv(outputRoot, options);
 
   if (slug !== requestedSlug) {
     warnings.push(`deck slug "${requestedSlug}" already exists; created numbered workspace "${slug}" instead`);
@@ -155,21 +159,24 @@ async function buildDeck(options) {
   copyInputIr(inputPath, workspace);
   copyDeclaredAssets(ir, inputPath, workspace, warnings);
 
+  const buildVersion = resolveNextOutputVersion(workspace, options);
   const outputs = {
-    pptx: path.join(workspace, WORKSPACE_FILES.pptx)
+    pptx: getVersionedPptxPath(workspace, buildVersion)
   };
   await buildPptxFile(ir, registries, outputs.pptx, { warnings, fallbacks });
 
-  const qaReport = shouldRunQa(options.qa) ? await runQa(workspace, { write: true }) : null;
+  const qaReport = shouldRunQa(options.qa) ? await runQa(workspace, { write: true, pptxPath: outputs.pptx }) : null;
   const manifest = writeManifest(workspace, {
     ir,
     slug,
+    buildVersion,
     inputPath,
     outputs,
     warnings,
     fallbacks,
     registries,
-    qaReport
+    qaReport,
+    runtime
   });
   updateIndex(outputRoot, manifest);
 
@@ -244,9 +251,6 @@ function prepareWorkspace(workspace, options) {
     ensureWorkspace(workspace);
     return;
   }
-  if (workspaceHasBuildArtifacts(workspace) && !options.overwrite) {
-    throw new Error(`deck workspace already has build outputs: ${workspace}. Re-run with --overwrite to replace generated output files while preserving input and assets.`);
-  }
   if (options.overwrite) {
     clearBuildArtifacts(workspace);
   }
@@ -260,7 +264,7 @@ function resolveBuildTargetSlug(outputRoot, baseSlug, options, inputPath) {
   if (!fs.existsSync(baseWorkspace)) return baseSlug;
 
   const inputIsInBaseWorkspace = isPathInside(inputPath, baseWorkspace);
-  if (inputIsInBaseWorkspace && !workspaceHasBuildArtifacts(baseWorkspace)) {
+  if (inputIsInBaseWorkspace) {
     return baseSlug;
   }
 
@@ -292,7 +296,7 @@ function workspaceHasBuildArtifacts(workspace) {
     path.join("qa", "qa-report.json"),
     LEGACY_WORKSPACE_FILES.pptx,
     LEGACY_WORKSPACE_FILES.manifest
-  ].some((relativePath) => fs.existsSync(path.join(workspace, relativePath)));
+  ].some((relativePath) => fs.existsSync(path.join(workspace, relativePath))) || listOutputVersions(workspace).length > 0;
 }
 
 function clearBuildArtifacts(workspace) {
@@ -309,6 +313,103 @@ function clearBuildArtifacts(workspace) {
     if (fs.existsSync(targetPath)) {
       fs.rmSync(targetPath, { recursive: true, force: true });
     }
+  }
+}
+
+function resolveNextOutputVersion(workspace, options) {
+  if (options.outputVersion) {
+    return parseOutputVersion(options.outputVersion);
+  }
+  const versions = listOutputVersions(workspace).map((entry) => entry.version);
+  return versions.length ? Math.max(...versions) + 1 : 1;
+}
+
+function parseOutputVersion(value) {
+  const match = String(value).trim().match(/^v?([1-9][0-9]*)$/i);
+  if (!match) {
+    throw new Error(`invalid output version: ${value}`);
+  }
+  return Number(match[1]);
+}
+
+function getVersionedPptxPath(workspace, version) {
+  return path.join(workspace, "output", `${OUTPUT_PPTX_PREFIX}-v${version}.pptx`);
+}
+
+function listOutputVersions(workspace) {
+  const outputDir = path.join(workspace, "output");
+  if (!fs.existsSync(outputDir)) return [];
+  return fs.readdirSync(outputDir)
+    .map((filename) => {
+      const match = filename.match(/^presentation-v([1-9][0-9]*)\.pptx$/);
+      return match ? { filename, version: Number(match[1]) } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.version - b.version);
+}
+
+function getRuntimeEnv(outputRoot, options) {
+  const cachePath = path.join(outputRoot, ENV_CACHE_FILENAME);
+  const cached = !options.refreshEnv && fs.existsSync(cachePath) ? safeReadJson(cachePath) : null;
+  if (cached && cached.version === 1 && cached.skillRoot === SKILL_ROOT && cached.node?.execPath === process.execPath) {
+    return cached;
+  }
+
+  const detected = {
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    skillRoot: SKILL_ROOT,
+    node: {
+      execPath: process.execPath,
+      version: process.version,
+      platform: process.platform,
+      arch: process.arch
+    },
+    python: {
+      execPath: findExecutable(["python3", "python"])
+    },
+    tools: {
+      soffice: findExecutable(["soffice"])
+    },
+    packages: {
+      pptxgenjs: resolvePackageSpecifier("pptxgenjs"),
+      ajv: resolvePackageSpecifier("ajv")
+    }
+  };
+
+  fs.mkdirSync(outputRoot, { recursive: true });
+  fs.writeFileSync(cachePath, `${JSON.stringify(detected, null, 2)}\n`, "utf8");
+  return detected;
+}
+
+function resolvePackageSpecifier(specifier) {
+  try {
+    return import.meta.resolve(specifier);
+  } catch {
+    return null;
+  }
+}
+
+function findExecutable(names) {
+  const pathEntries = String(process.env.PATH || "").split(path.delimiter).filter(Boolean);
+  const suffixes = process.platform === "win32" ? ["", ".exe", ".cmd", ".bat"] : [""];
+  for (const name of names) {
+    for (const dir of pathEntries) {
+      for (const suffix of suffixes) {
+        const candidate = path.join(dir, `${name}${suffix}`);
+        if (isExecutableFile(candidate)) return candidate;
+      }
+    }
+  }
+  return null;
+}
+
+function isExecutableFile(filePath) {
+  try {
+    fs.accessSync(filePath, fs.constants.X_OK);
+    return fs.statSync(filePath).isFile();
+  } catch {
+    return false;
   }
 }
 
@@ -556,12 +657,12 @@ async function runQa(workspace, options = {}) {
   const checks = [];
   const paths = {
     ir: resolveWorkspaceFile(workspace, "ir"),
-    pptx: resolveWorkspaceFile(workspace, "pptx"),
+    pptx: options.pptxPath || resolveWorkspaceFile(workspace, "pptx"),
     manifest: resolveWorkspaceFile(workspace, "manifest")
   };
 
   checks.push(checkFile(WORKSPACE_FILES.ir, paths.ir));
-  checks.push(checkFile(WORKSPACE_FILES.pptx, paths.pptx));
+  checks.push(checkFile(toPosixPath(path.relative(workspace, paths.pptx)), paths.pptx));
 
   const status = checks.every((check) => check.status === "passed") ? "passed" : "failed";
   const report = {
@@ -598,6 +699,11 @@ function writeManifest(workspace, data) {
       template: data.ir.template,
       slideCount: data.ir.slides.length
     },
+    build: {
+      version: data.buildVersion,
+      outputName: path.basename(data.outputs.pptx),
+      history: listOutputVersions(workspace).map((entry) => path.join("output", entry.filename).split(path.sep).join("/"))
+    },
     sourceFiles: {
       input: rel(data.inputPath),
       slideIr: toPosixPath(WORKSPACE_FILES.ir),
@@ -612,6 +718,13 @@ function writeManifest(workspace, data) {
       layoutsVersion: data.registries.layouts.version || null,
       componentsVersion: data.registries.components.version || null
     },
+    runtime: data.runtime ? {
+      cache: toPosixPath(path.relative(workspace, path.join(path.dirname(path.dirname(workspace)), ENV_CACHE_FILENAME))),
+      node: data.runtime.node,
+      python: data.runtime.python,
+      tools: data.runtime.tools,
+      packages: data.runtime.packages
+    } : null,
     warnings: unique(data.warnings),
     fallbacks: uniqueFallbacks(data.fallbacks),
     qa: data.qaReport ? {
@@ -634,7 +747,7 @@ function updateIndex(outputRoot, manifest) {
     workspace: workspaceRel,
     updatedAt: manifest.generatedAt,
     outputs: {
-      pptx: toPosixPath(path.join(workspaceRel, WORKSPACE_FILES.pptx))
+      pptx: toPosixPath(path.join(workspaceRel, manifest.outputs.pptx))
     }
   };
   existing.decks = (existing.decks || []).filter((deck) => deck.slug !== manifest.deck.slug);
@@ -716,6 +829,18 @@ function checkFile(name, filePath) {
 }
 
 function resolveWorkspaceFile(workspace, key) {
+  if (key === "pptx") {
+    const manifestPath = path.join(workspace, WORKSPACE_FILES.manifest);
+    const manifest = fs.existsSync(manifestPath) ? safeReadJson(manifestPath) : null;
+    if (manifest?.outputs?.pptx) {
+      const manifestPptx = path.join(workspace, manifest.outputs.pptx);
+      if (fs.existsSync(manifestPptx)) return manifestPptx;
+    }
+    const versions = listOutputVersions(workspace);
+    if (versions.length) {
+      return path.join(workspace, "output", versions[versions.length - 1].filename);
+    }
+  }
   const modern = path.join(workspace, WORKSPACE_FILES[key]);
   if (fs.existsSync(modern)) return modern;
   return path.join(workspace, LEGACY_WORKSPACE_FILES[key]);
@@ -766,6 +891,14 @@ function assertSlug(value) {
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+function safeReadJson(filePath) {
+  try {
+    return readJson(filePath);
+  } catch {
+    return null;
+  }
 }
 
 function deepMerge(base, override) {

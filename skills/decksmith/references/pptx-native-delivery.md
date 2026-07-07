@@ -75,19 +75,21 @@ Run these checks before delivery:
      --render required
    ```
 
-   The helper writes `qa/pptx-qa-report.json`, checks PPTX package structure, and renders with LibreOffice `soffice` only when it is already installed. It does not certify visual quality by itself.
+   The helper writes `qa/pptx-qa-report.json`, checks PPTX package structure, runs heuristic layout preflight in `pptx.layoutQa`, and renders with LibreOffice `soffice` only when it is already installed. It does not certify visual quality by itself.
 
 3. Do not use WPS Office for headless conversion on macOS. Its `wpsoffice` binary starts the GUI and emits Qt/runtime noise instead of acting as a reliable converter.
 4. Do not install LibreOffice, Poppler, or other render tools during final QA unless the user explicitly approves. First check whether the tool exists; if it is missing, report visual QA as blocked.
 5. Treat structural QA as a separate result, not as visual QA. A valid ZIP package, slide count, and text extraction prove the PPTX is structurally readable; they do not prove layout, clipping, overlap, or rendering quality.
-6. If `qa/pptx-qa-report.json` has `visualQa.status` of `rendered`, inspect the `visualQa.representativePages` PNG paths at full size. At minimum check cover, most text-dense slide, most visually dense slide, and closing slide; add process/architecture or scenario/value slides when those layouts exist.
-7. If the report has `visualQa.status` of `pdf-rendered`, inspect the PDF directly and disclose that PNG page screenshots were not produced.
-8. If the report has `visualQa.status` of `blocked`, stop and state exactly which renderer dependency is missing. Offer the user a choice: approve installing LibreOffice/Poppler, open the PPTX manually and provide screenshots, or accept structural-only QA with the explicit limitation.
-9. Verify no obvious clipping, overlap, broken connectors, tiny body text, or missing labels.
-10. Inspect the `.pptx` package when editability matters. A PPTX-first native build should not rely on `ppt/media/*` full-slide images unless the fallback is intentional and documented.
-11. Update `manifest.json` and `qa/qa-report.json` to reflect the actual delivery route, QA evidence, and any fallbacks.
+6. Read `pptx.layoutQa` in the report before manual inspection. Resolve or explicitly justify warnings for out-of-bounds content, edge-clipping risk, text overflow, body text below the minimum size, and large overlaps between content elements. Decorative off-canvas shapes may be intentional, but decorative shapes that cover text, cards, buttons, page numbers, charts, or footers are defects.
+7. If `qa/pptx-qa-report.json` has `visualQa.status` of `rendered`, inspect the `visualQa.representativePages` PNG paths at full size. At minimum check cover, most text-dense slide, most visually dense slide, and closing slide; add process/architecture or scenario/value slides when those layouts exist.
+8. Inspect fine-detail layout on rendered pages: text stays inside cards and callouts, cards align to a clear grid, buttons do not overlap footer/contact/page-number areas, icons and badges do not hide labels, charts/tables stay inside safe margins, connectors meet their nodes, and repeated elements have consistent spacing and alignment.
+9. If the report has `visualQa.status` of `pdf-rendered`, inspect the PDF directly and disclose that PNG page screenshots were not produced.
+10. If the report has `visualQa.status` of `blocked`, stop and state exactly which renderer dependency is missing. Offer the user a choice: approve installing LibreOffice/Poppler, open the PPTX manually and provide screenshots, or accept structural-only QA with the explicit limitation.
+11. Verify no obvious clipping, overlap, broken connectors, tiny body text, missing labels, position drift, formatting disorder, or container overflow.
+12. Inspect the `.pptx` package when editability matters. A PPTX-first native build should not rely on `ppt/media/*` full-slide images unless the fallback is intentional and documented.
+13. Update `manifest.json` and `qa/qa-report.json` to reflect the actual delivery route, QA evidence, layout warnings, fixes, and any fallbacks.
 
-The manual equivalent is headless `soffice` to PDF, then `pdftoppm` or PyMuPDF to PNG. Prefer the helper because it avoids fragile inline shell quoting and writes a machine-readable report. The final QA judgment is still made by inspecting the rendered pages, not by trusting the script exit code alone.
+The manual equivalent is headless `soffice` to PDF, then `pdftoppm` or PyMuPDF to PNG, plus PPTX XML geometry inspection. Prefer the helper because it avoids fragile inline shell quoting and writes a machine-readable report. The final QA judgment is still made by inspecting the rendered pages and resolving the layout preflight risks, not by trusting the script exit code alone.
 
 ## When To Fall Back
 

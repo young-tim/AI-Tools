@@ -25,12 +25,12 @@ or visual reference into a structured, editable, high-design PPTX deck.
 - Build narrative and page intent before visual styling. Never choose a template first and force content into it.
 - Improve content usefulness before polishing visuals: sharpen claims, remove weak filler, choose evidence, and make each slide answer a real audience question.
 - Keep title, body text, metrics, tables, charts, logos, and process nodes editable in PPTX whenever possible.
-- Store each deck's lifecycle artifacts under `.decksmith/decks/<deck-slug>/`; do not use `.decksmith/inputs/<deck-slug>/` or scatter generated files in the project root. Before confirmation, keep the workspace limited to planning inputs and authorized reference assets.
+- Store each deck's lifecycle artifacts under `.decksmith/decks/<deck-slug>/`; do not use `.decksmith/inputs/<deck-slug>/` or scatter generated files in the project root. Store reusable runtime path detection in `.decksmith/env.json`. Before confirmation, keep the workspace limited to planning inputs and authorized reference assets.
 - When the user provides a website, PPT, image, screenshot, moodboard, or other
   style reference, inspect the actual visual artifact before describing or
   applying its style. Do not infer visual style from website text, metadata,
   brand category, or general industry expectations alone.
-- When a new deck request resolves to a project name or slug that already exists, create the next numbered workspace such as `<deck-slug>-2`, `<deck-slug>-3`, and so on. Reuse the original slug only when the user explicitly asks to overwrite or continue that exact workspace.
+- When a new deck request resolves to a project name or slug that already exists, create the next numbered workspace such as `<deck-slug>-2`, `<deck-slug>-3`, and so on. Reuse the original slug when the user explicitly asks to continue that exact workspace, then create a new versioned PPTX under `output/` instead of replacing the prior PPTX.
 - Use the bundled Node.js CLI and PptxGenJS for the full PPTX authoring chain after confirmation.
 - Treat PPTX-native authoring as the only delivery route: build editable PowerPoint objects directly and verify the PPTX itself.
 - Keep default themes, templates, examples, and public docs brand-neutral. Use placeholders such as `[Your Brand]` and `[Company Name]`.
@@ -107,9 +107,9 @@ brief, or when the user explicitly requested a no-confirmation PPTX-native build
 4. Read `{SKILL_ROOT}/references/asset-sources.md` when choosing icons, illustrations, or third-party visual assets.
 5. Generate Slide IR with `meta.slug` when a stable output name is known, save it as `ir/presentation.json` in the deck workspace, then validate it with `decksmith validate --input <presentation.json>`. Without optional Ajv, validation uses built-in structural checks.
 6. Read `{SKILL_ROOT}/references/pptx-native-delivery.md` before authoring the PPTX. Build the deck with PptxGenJS native PPTX objects directly for delivery.
-7. Build the PPTX under `output/` and keep any deck-local generation scripts under `cache/` or `logs/` unless the user asks to keep implementation artifacts.
-8. Run PPTX visual QA: `python3 {SKILL_ROOT}/scripts/pptx_qa.py <deck.pptx> --workspace <deck-workspace> --render required`, then open and inspect the generated `visualQa.representativePages` PNG/PDF pages. The script only creates evidence and reports whether render QA is possible; it is not the visual judgment. If the helper reports visual QA as blocked, do not downgrade silently to structural QA; state the blocker and ask whether to install/enable a renderer or proceed with the limitation. For reference-driven decks, also read `{SKILL_ROOT}/references/style-qa.md`.
-9. Fix issues in this order: improve or shorten weak content, reduce text, adjust layout, switch layout, split slides, tune font size above the minimum, then handle remaining visual issues locally.
+7. Build the PPTX under `output/` as a versioned file such as `presentation-v1.pptx` or `presentation-v2.pptx`; keep any deck-local generation scripts under `cache/` or `logs/` unless the user asks to keep implementation artifacts.
+8. Run PPTX visual QA: `python3 {SKILL_ROOT}/scripts/pptx_qa.py <deck.pptx> --workspace <deck-workspace> --render required`, then use the generated `visualQa.representativePages` PNG/PDF pages as the primary QA evidence. If the current model/session has image understanding, inspect those rendered pages visually first and use `pptx.layoutQa` only as supporting evidence for geometry/text risks. If visual inspection is unavailable, explicitly downgrade to `pptx.layoutQa` script detection and disclose that it is heuristic and less reliable than rendered-page visual review. If the helper reports visual QA as blocked, do not downgrade silently to structural QA; state the blocker and ask whether to install/enable a renderer or proceed with the limitation. For reference-driven decks, also read `{SKILL_ROOT}/references/style-qa.md`.
+9. Treat any visible rendered-page problem as the highest-priority fix gate, especially text outside a container, bottom/footer overlap, elements covering each other, cropped labels, misaligned cards/buttons, broken connectors, chart/table overflow, and text that touches slide edges. When visual inspection is unavailable, treat any `pptx.layoutQa.status != "passed"` as the fallback fix gate. Fix issues in this order: improve or shorten weak content, reduce text, adjust layout, switch layout, split slides, tune font size above the minimum, then handle remaining visual issues locally. Rebuild and rerun QA until visual defects are gone, or until fallback layout risks are resolved or explicitly documented as intentional decorative overlap.
 10. Confirm the deck workspace contains `manifest.json`, `qa/qa-report.json`, `ir/presentation.json` or an equivalent content source, and the requested PPTX.
 
 ## Output Workspace
@@ -121,12 +121,14 @@ Resolve `<deck-slug>` from CLI `--slug`, then `meta.slug`, then a normalized
 numbered slug (`<deck-slug>-2`, `<deck-slug>-3`, etc.) instead of mixing project
 files. A pre-created planning workspace is valid before confirmation; do not add
 `ir/`, `output/`, `qa/`, or `manifest.json` until Phase 2. Rebuilding a
-workspace that already has generated outputs
-requires `--overwrite`, which replaces generated output, QA evidence, cache, and
-log files while preserving `input/`, `assets/`, and the input IR.
+workspace that already has generated outputs creates the next versioned PPTX
+under `output/` and updates `manifest.json` to point to the current version.
+Use `--overwrite` only when explicitly replacing generated output, QA evidence,
+cache, and log files while preserving `input/`, `assets/`, and the input IR.
 
 ```text
 .decksmith/
+├── env.json
 ├── index.json
 └── decks/
     └── <deck-slug>/
@@ -141,7 +143,8 @@ log files while preserving `input/`, `assets/`, and the input IR.
         ├── ir/
         │   └── presentation.json
         ├── output/
-        │   └── presentation.pptx
+        │   ├── presentation-v1.pptx
+        │   └── presentation-v2.pptx
         ├── assets/
         │   ├── images/
         │   ├── icons/
@@ -232,6 +235,11 @@ the fallback in `manifest.json` and QA notes.
 
 For SVG assets, use PptxGenJS `addImage` with base64 SVG image data.
 
+Runtime detection is cached in `.decksmith/env.json` after the first build. Use
+the cached Node.js path, Python path, renderer path, and resolved package
+locations for later DeckSmith commands by default; refresh the cache only when
+the local environment changes or the user requests it.
+
 ## Unsupported As Key Content
 
 Do not make these effects the only way to express critical content: blur filters, backdrop filters, blend modes, masks, clip paths, CSS 3D transforms, WebGL, Canvas text, dynamic script-generated content, pseudo-element text, macros, executable links, or unvalidated external resources.
@@ -241,10 +249,12 @@ Do not make these effects the only way to express critical content: blur filters
 Before delivery, verify:
 
 - `ir/presentation.json` exists in the active deck workspace and validates.
-- New builds store Slide IR at `ir/presentation.json` and deliverables under `output/`; legacy root-level files are read only for compatibility.
+- New builds store Slide IR at `ir/presentation.json` and versioned deliverables under `output/`; legacy root-level files are read only for compatibility.
 - PPTX opens in common slide editors and preserves core text/data as independent objects.
 - Content QA passes: each slide has a clear claim, relevant evidence, and no filler that could be removed without changing the message.
-- Render the final PPTX to PDF/PNG with `{SKILL_ROOT}/scripts/pptx_qa.py` and inspect representative full-size slides.
+- Render the final PPTX to PDF/PNG with `{SKILL_ROOT}/scripts/pptx_qa.py` and inspect representative full-size slides visually whenever the current model/session supports image understanding.
+- If visual inspection is unavailable, downgrade to `qa/pptx-qa-report.json` -> `pptx.layoutQa` script detection and disclose the limitation. Resolve or explicitly justify all warnings about out-of-bounds content, edge clipping, text overflow, small body text, content overlap, element misalignment, or likely hidden/covered objects.
+- The rendered full-size slide review must check fine-detail layout, not only overall appearance: card/body text stays inside containers, buttons do not cover footers, badges and icons do not hide text, decorative shapes do not interrupt content, tables/charts stay within safe margins, repeated elements align consistently, and page numbers/brand marks remain unobstructed.
 - Structural PPTX checks, including ZIP validity, slide count, text extraction, and media listing, are not visual QA. Use them as evidence only when render QA is explicitly blocked or the user accepts structural-only QA.
 - Do not use WPS Office as a command-line PPTX renderer on macOS, and do not install LibreOffice or Poppler during QA without explicit user approval.
 - `qa/qa-report.json` exists in the active deck workspace; reference-driven decks also include `style-qa-report.json`.
@@ -261,12 +271,13 @@ node ./scripts/decksmith.mjs validate --input ./examples/ai-consulting-deck.json
 node ./scripts/decksmith.mjs build --input ./examples/ai-consulting-deck.json --output-root ./.decksmith --qa true
 node ./scripts/decksmith.mjs qa --workspace ./.decksmith/decks/enterprise-ai-capability-plan
 node ./scripts/decksmith.mjs clean --workspace ./.decksmith/decks/enterprise-ai-capability-plan --cache-only
-python3 ./scripts/pptx_qa.py ./.decksmith/decks/enterprise-ai-capability-plan/output/presentation.pptx --workspace ./.decksmith/decks/enterprise-ai-capability-plan --render required
+python3 ./scripts/pptx_qa.py ./.decksmith/decks/enterprise-ai-capability-plan/output/presentation-v1.pptx --workspace ./.decksmith/decks/enterprise-ai-capability-plan --render required
 ```
 
 Dependency handling:
 
 - Use the repository or skill runtime dependencies for DeckSmith commands.
+- Reuse `.decksmith/env.json` for local Node.js, Python, renderer, and package path detection after the first successful DeckSmith run; use `--refresh-env` only when the environment changes.
 - Do not run `npm install`, `pnpm add`, or package-manager installs inside an active deck workspace such as `.decksmith/decks/<deck-slug>/`.
 - Strict schema validation uses `ajv` only when it is already available; otherwise built-in structural validation is acceptable.
 - PPTX authoring requires `pptxgenjs` from the repository or skill environment.
