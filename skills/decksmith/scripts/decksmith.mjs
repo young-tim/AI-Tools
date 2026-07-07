@@ -158,7 +158,7 @@ async function buildDeck(options) {
   const outputs = {
     pptx: path.join(workspace, WORKSPACE_FILES.pptx)
   };
-  await exportPptx(ir, registries, outputs.pptx, { warnings, fallbacks });
+  await buildPptxFile(ir, registries, outputs.pptx, { warnings, fallbacks });
 
   const qaReport = shouldRunQa(options.qa) ? await runQa(workspace, { write: true }) : null;
   const manifest = writeManifest(workspace, {
@@ -230,8 +230,8 @@ function ensureWorkspace(workspace) {
     path.join(workspace, "assets", "charts"),
     path.join(workspace, "assets", "fonts"),
     path.join(workspace, "assets", "generated"),
-    path.join(workspace, "previews", "pptx"),
     path.join(workspace, "qa"),
+    path.join(workspace, "qa", "rendered-pages"),
     path.join(workspace, "cache"),
     path.join(workspace, "logs")
   ]) {
@@ -298,7 +298,6 @@ function workspaceHasBuildArtifacts(workspace) {
 function clearBuildArtifacts(workspace) {
   for (const relativePath of [
     "output",
-    "previews",
     "qa",
     "cache",
     "logs",
@@ -338,13 +337,13 @@ function copyDeclaredAssets(ir, inputPath, workspace, warnings) {
   }
 }
 
-async function exportPptx(ir, registries, pptxPath, ctx) {
+async function buildPptxFile(ir, registries, pptxPath, ctx) {
   let PptxGenJS;
   try {
     ({ default: PptxGenJS } = await import("pptxgenjs"));
   } catch (error) {
     if (error.code === "ERR_MODULE_NOT_FOUND" || /Cannot find package 'pptxgenjs'/.test(error.message)) {
-      throw new Error('PPTX export requires optional pptxgenjs. Install it only when PPTX export is needed: "pnpm add -D pptxgenjs".');
+      throw new Error('PPTX generation requires optional pptxgenjs. Install it when native PPTX builds are needed: "pnpm add -D pptxgenjs".');
     }
     throw error;
   }
@@ -650,7 +649,7 @@ function cleanWorkspace(workspace, options) {
   }
   const targets = options.cacheOnly
     ? ["cache", "logs"]
-    : ["cache", "logs", path.join("previews", "pptx")];
+    : ["cache", "logs", path.join("qa", "rendered-pages")];
   for (const target of targets) {
     const targetPath = path.join(workspace, target);
     if (fs.existsSync(targetPath)) {

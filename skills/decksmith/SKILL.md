@@ -47,7 +47,7 @@ produce the final PPTX as native, editable PowerPoint content.
 | `pptx-native` | Default and only deck creation route after content confirmation; required for polished decks, client-facing decks, reports, proposals, architecture decks, and reusable template/component work | Native PPTX layout plus content source | PPTX |
 | `reference-style` | The user provides a website, image, PPT, screenshot, or moodboard as style input | Style brief plus PPTX-native adaptation | PPTX |
 
-Do not optimize a separate preview first and then expect PPTX quality to follow. If the requested deliverable is a useful, beautiful PPT, design and QA the PPTX directly.
+Do not optimize a separate non-PPTX artifact first and then expect PPTX quality to follow. If the requested deliverable is a useful, beautiful PPT, design and QA the PPTX directly.
 
 ## Planning Confirmation Gate
 
@@ -121,7 +121,7 @@ numbered slug (`<deck-slug>-2`, `<deck-slug>-3`, etc.) instead of mixing project
 files. A pre-created planning workspace is valid before confirmation; do not add
 `ir/`, `output/`, `qa/`, or `manifest.json` until Phase 2. Rebuilding a
 workspace that already has generated outputs
-requires `--overwrite`, which replaces generated output, QA, preview, cache, and
+requires `--overwrite`, which replaces generated output, QA evidence, cache, and
 log files while preserving `input/`, `assets/`, and the input IR.
 
 ```text
@@ -147,19 +147,17 @@ log files while preserving `input/`, `assets/`, and the input IR.
         │   ├── charts/
         │   ├── fonts/
         │   └── generated/
-        ├── previews/
-        │   ├── pptx/
-        │   └── qa/
         ├── qa/
         │   ├── qa-report.json
         │   ├── pptx-qa-report.json
+        │   ├── rendered-pages/
         │   └── style-qa-report.json
         ├── cache/
         ├── logs/
         └── manifest.json
 ```
 
-Cache, logs, preview screenshots, and issue screenshots should not be committed unless the user explicitly asks for evidence artifacts.
+Cache, logs, rendered QA pages, and issue screenshots should not be committed unless the user explicitly asks for evidence artifacts.
 
 ## Slide IR Rules
 

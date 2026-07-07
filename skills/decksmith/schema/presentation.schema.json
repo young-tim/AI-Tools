@@ -94,7 +94,7 @@
     },
     "settings": {
       "type": "object",
-      "description": "渲染与导出设置",
+      "description": "PPTX画布与生成设置",
       "required": ["canvasWidth", "canvasHeight", "pptLayout", "editablePriority"],
       "properties": {
         "canvasWidth": {
@@ -345,7 +345,7 @@
             },
             "minFontSize": {
               "type": "integer",
-              "description": "最小字号限制（HTML像素）",
+              "description": "最小字号限制（PPT字号）",
               "default": 18,
               "minimum": 12,
               "maximum": 32
@@ -508,13 +508,6 @@
           "description": "字重（可选）",
           "enum": ["light", "normal", "medium", "semibold", "bold"],
           "default": "normal"
-        },
-        "customClasses": {
-          "type": "array",
-          "description": "自定义CSS类名（可选，仅限HTML渲染器使用）",
-          "items": {
-            "type": "string"
-          }
         }
       }
     }

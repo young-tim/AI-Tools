@@ -34,7 +34,7 @@ selection, Slide IR, or PPTX generation with an invented style.
 1. Open or render the URL and capture/inspect representative visual sections:
    hero, content blocks, data/metric areas, cards, navigation-like structures,
    CTA/footer if relevant. Prefer screenshots or rendered page captures over
-   HTML text extraction.
+   DOM/text extraction.
 2. Record colors by role: background, surface, primary, accent, text, muted text, border, positive/warning/error, chart palette.
 3. Record typography: heading family/style, body family/style, weight contrast, title scale, body scale, line height, capitalization, and numeric style.
 4. Record layout rhythm: canvas density, margins, grid columns, card radius, shadow/elevation, section spacing, alignment, and image-to-text ratio.

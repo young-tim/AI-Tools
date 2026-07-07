@@ -10,7 +10,6 @@ is not reliable for headless conversion.
 from __future__ import annotations
 
 import argparse
-import html
 import importlib.util
 import json
 import re
@@ -20,6 +19,7 @@ import sys
 import zipfile
 from pathlib import Path
 from typing import Any
+from xml.sax.saxutils import unescape
 
 
 EMU_PER_INCH = 914400
@@ -57,7 +57,7 @@ def default_workspace(pptx: Path) -> Path:
 
 def decode_text(xml: str) -> list[str]:
     values = re.findall(r"<a:t>(.*?)</a:t>", xml, flags=re.S)
-    return [html.unescape(re.sub(r"\s+", " ", value)).strip() for value in values if value.strip()]
+    return [unescape(re.sub(r"\s+", " ", value)).strip() for value in values if value.strip()]
 
 
 def inspect_package(pptx: Path) -> tuple[dict[str, Any], bool]:
@@ -158,9 +158,9 @@ def run_command(command: list[str], timeout: int) -> tuple[int, str]:
 
 
 def render_with_soffice(pptx: Path, workspace: Path, timeout: int) -> dict[str, Any]:
-    preview_dir = workspace / "previews" / "pptx"
+    render_dir = workspace / "qa" / "rendered-pages"
     profile_dir = workspace / "cache" / "libreoffice-profile"
-    preview_dir.mkdir(parents=True, exist_ok=True)
+    render_dir.mkdir(parents=True, exist_ok=True)
     profile_dir.mkdir(parents=True, exist_ok=True)
 
     visual: dict[str, Any] = {
@@ -186,7 +186,7 @@ def render_with_soffice(pptx: Path, workspace: Path, timeout: int) -> dict[str, 
         "--convert-to",
         "pdf",
         "--outdir",
-        str(preview_dir),
+        str(render_dir),
         str(pptx.resolve()),
     ]
     try:
@@ -201,16 +201,16 @@ def render_with_soffice(pptx: Path, workspace: Path, timeout: int) -> dict[str, 
         visual["errors"].append(f"LibreOffice conversion failed with exit code {code}.")
         return visual
 
-    pdf = preview_dir / f"{pptx.stem}.pdf"
+    pdf = render_dir / f"{pptx.stem}.pdf"
     if not pdf.exists():
-        pdf_candidates = sorted(preview_dir.glob("*.pdf"), key=lambda item: item.stat().st_mtime, reverse=True)
+        pdf_candidates = sorted(render_dir.glob("*.pdf"), key=lambda item: item.stat().st_mtime, reverse=True)
         pdf = pdf_candidates[0] if pdf_candidates else pdf
     if not pdf.exists():
         visual["errors"].append("LibreOffice reported success but no PDF was produced.")
         return visual
 
     visual["pdf"] = str(pdf)
-    png_pages = render_pdf_to_png(pdf, preview_dir, timeout)
+    png_pages = render_pdf_to_png(pdf, render_dir, timeout)
     visual["pngPages"] = [str(path) for path in png_pages]
     if png_pages:
         visual["status"] = "rendered"
@@ -253,14 +253,14 @@ def select_representative_pages(package_report: dict[str, Any], visual_report: d
     return unique
 
 
-def render_pdf_to_png(pdf: Path, preview_dir: Path, timeout: int) -> list[Path]:
+def render_pdf_to_png(pdf: Path, render_dir: Path, timeout: int) -> list[Path]:
     pdftoppm = shutil.which("pdftoppm")
     if pdftoppm:
-        prefix = preview_dir / "page"
+        prefix = render_dir / "page"
         command = [pdftoppm, "-png", "-r", "140", str(pdf), str(prefix)]
         code, _ = run_command(command, timeout)
         if code == 0:
-            return sorted(preview_dir.glob("page-*.png"))
+            return sorted(render_dir.glob("page-*.png"))
 
     if importlib.util.find_spec("fitz"):
         import fitz  # type: ignore
@@ -269,7 +269,7 @@ def render_pdf_to_png(pdf: Path, preview_dir: Path, timeout: int) -> list[Path]:
         doc = fitz.open(pdf)
         for idx, page in enumerate(doc, start=1):
             pix = page.get_pixmap(matrix=fitz.Matrix(140 / 72, 140 / 72), alpha=False)
-            path = preview_dir / f"page-{idx:02d}.png"
+            path = render_dir / f"page-{idx:02d}.png"
             pix.save(path)
             pages.append(path)
         doc.close()
