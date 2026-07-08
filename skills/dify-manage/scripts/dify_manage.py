@@ -835,25 +835,57 @@ def normalize_console_url(url: str) -> str:
 
 
 class DifySession:
+    """Dify Console 会话管理，兼容 __Host- 前缀（新版）和无前缀（旧版）两种 Cookie 格式。"""
+
+    _COOKIE_VARIANTS: dict[str, tuple[str, ...]] = {
+        "access_token": ("__Host-access_token", "access_token"),
+        "csrf_token": ("__Host-csrf_token", "csrf_token"),
+        "refresh_token": ("__Host-refresh_token", "refresh_token"),
+    }
+
     def __init__(self, console_url: str) -> None:
         self.console_url = normalize_console_url(console_url)
         self.jar = CookieJar()
         self.opener = build_opener(HTTPCookieProcessor(self.jar))
         self._seed_cookies_from_env()
 
+    def _domain_for_cookies(self) -> str:
+        return self.console_url.replace("https://", "").replace("http://", "")
+
     def _seed_cookies_from_env(self) -> None:
-        domain = self.console_url.replace("https://", "").replace("http://", "")
-        for name, env_key in (
+        """从环境变量/ session 初始化 cookie，优先使用 __Host- 前缀格式（新版 Dify）。"""
+        for canonical_name, env_key in (
             ("access_token", "DIFY_CONSOLE_TOKEN"),
             ("csrf_token", "DIFY_CSRF_TOKEN"),
             ("refresh_token", "DIFY_REFRESH_TOKEN"),
         ):
             value = os.environ.get(env_key, "")
             if value:
-                self.jar.set_cookie(self._make_cookie(domain, name, value))
+                self.jar.set_cookie(self._make_cookie("", f"__Host-{canonical_name}", value, host_prefix=True))
 
     @staticmethod
-    def _make_cookie(domain: str, name: str, value: str) -> Cookie:
+    def _make_cookie(domain: str, name: str, value: str, *, host_prefix: bool = False) -> Cookie:
+        """创建 Cookie 对象，host_prefix=True 时创建符合 __Host- 规范的 host-only cookie。"""
+        if host_prefix:
+            return Cookie(
+                version=0,
+                name=name,
+                value=value,
+                port=None,
+                port_specified=False,
+                domain="",
+                domain_specified=False,
+                domain_initial_dot=False,
+                path="/",
+                path_specified=True,
+                secure=True,
+                expires=None,
+                discard=True,
+                comment=None,
+                comment_url=None,
+                rest={"SameSite": "Lax"},
+                rfc2109=False,
+            )
         return Cookie(
             version=0,
             name=name,
@@ -874,11 +906,38 @@ class DifySession:
             rfc2109=False,
         )
 
-    def cookie_value(self, name: str) -> str:
+    def _find_cookie(self, canonical_name: str) -> Cookie | None:
+        """按规范名查找 cookie，自动尝试 __Host- 前缀和无前缀两种变体。"""
+        variants = self._COOKIE_VARIANTS.get(canonical_name, (canonical_name,))
         for c in self.jar:
-            if c.name == name:
-                return c.value
-        return ""
+            if c.name in variants:
+                return c
+        return None
+
+    def cookie_value(self, name: str) -> str:
+        """获取规范名对应的 cookie 值，兼容 __Host- 前缀和无前缀格式。"""
+        c = self._find_cookie(name)
+        return c.value if c else ""
+
+    def _build_cookie_header(self) -> str:
+        """从 jar 中实际存在的 cookie 构造 Cookie 请求头，保留原始名称（含 __Host- 前缀）。"""
+        parts: list[str] = []
+        seen: set[str] = set()
+        for canonical in ("access_token", "csrf_token", "refresh_token"):
+            c = self._find_cookie(canonical)
+            if c and c.value and c.name not in seen:
+                parts.append(f"{c.name}={c.value}")
+                seen.add(c.name)
+        env_access = os.environ.get("DIFY_CONSOLE_TOKEN", "")
+        env_csrf = os.environ.get("DIFY_CSRF_TOKEN", "")
+        env_refresh = os.environ.get("DIFY_REFRESH_TOKEN", "")
+        if env_access and "access_token" not in seen and "__Host-access_token" not in seen:
+            parts.append(f"__Host-access_token={env_access}")
+        if env_csrf and "csrf_token" not in seen and "__Host-csrf_token" not in seen:
+            parts.append(f"__Host-csrf_token={env_csrf}")
+        if env_refresh and "refresh_token" not in seen and "__Host-refresh_token" not in seen:
+            parts.append(f"__Host-refresh_token={env_refresh}")
+        return "; ".join(parts)
 
     def auth_headers(self) -> dict[str, str]:
         access = self.cookie_value("access_token") or os.environ.get("DIFY_CONSOLE_TOKEN", "")
@@ -888,14 +947,10 @@ class DifySession:
                 "No console session. Run: dify_manage.py login\n"
                 "Or set DIFY_CONSOLE_TOKEN + DIFY_CSRF_TOKEN (OS env or project .env)"
             )
-        refresh = self.cookie_value("refresh_token") or os.environ.get("DIFY_REFRESH_TOKEN", "")
-        cookie = f"access_token={access}; csrf_token={csrf}"
-        if refresh:
-            cookie += f"; refresh_token={refresh}"
         return {
             "Authorization": f"Bearer {access}",
             "X-CSRF-Token": csrf,
-            "Cookie": cookie,
+            "Cookie": self._build_cookie_header(),
             "Content-Type": "application/json",
         }
 
@@ -997,14 +1052,16 @@ class DifySession:
         return path
 
     def refresh(self) -> Path:
-        refresh = self.cookie_value("refresh_token") or os.environ.get("DIFY_REFRESH_TOKEN", "")
-        if not refresh:
+        refresh_cookie = self._find_cookie("refresh_token")
+        refresh_val = refresh_cookie.value if refresh_cookie else os.environ.get("DIFY_REFRESH_TOKEN", "")
+        if not refresh_val:
             raise SystemExit("No refresh_token; run login or set DIFY_REFRESH_TOKEN")
+        refresh_cookie_name = refresh_cookie.name if refresh_cookie else "__Host-refresh_token"
         url = f"{self.console_url}/console/api/refresh-token"
         req = urllib.request.Request(
             url,
             data=b"{}",
-            headers={"Content-Type": "application/json", "Cookie": f"refresh_token={refresh}"},
+            headers={"Content-Type": "application/json", "Cookie": f"{refresh_cookie_name}={refresh_val}"},
             method="POST",
         )
         try:
