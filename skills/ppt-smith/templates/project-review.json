@@ -1,0 +1,124 @@
+{
+  "id": "project-review",
+  "name": "项目复盘模板",
+  "version": "1.0.0",
+  "description": "适用于项目复盘、阶段总结、里程碑汇报等场景，强调成果回顾、经验沉淀与后续规划",
+  "recommendedThemes": ["enterprise-light", "default-light", "business-blue"],
+  "defaultTheme": "enterprise-light",
+  "contentDensity": "medium",
+  "slideStructure": [
+    {
+      "type": "cover",
+      "layout": "cover",
+      "required": true,
+      "title": "封面",
+      "description": "项目名称、汇报阶段、汇报人、日期"
+    },
+    {
+      "type": "agenda",
+      "layout": "agenda",
+      "required": true,
+      "title": "目录",
+      "description": "复盘议程与内容导航"
+    },
+    {
+      "type": "single-message",
+      "layout": "single-message",
+      "required": true,
+      "title": "项目概览",
+      "description": "项目背景、目标回顾、整体评价"
+    },
+    {
+      "type": "kpi-dashboard",
+      "layout": "kpi-dashboard",
+      "required": true,
+      "title": "成果数据",
+      "description": "核心指标完成情况、目标达成率、关键数据"
+    },
+    {
+      "type": "timeline",
+      "layout": "timeline",
+      "required": true,
+      "title": "里程碑回顾",
+      "description": "项目时间轴、关键节点、里程碑完成情况"
+    },
+    {
+      "type": "section",
+      "layout": "section",
+      "required": false,
+      "title": "章节过渡",
+      "description": "分模块标识页"
+    },
+    {
+      "type": "three-card",
+      "layout": "three-card",
+      "required": true,
+      "title": "亮点与做得好的",
+      "description": "项目亮点、成功经验、优秀实践"
+    },
+    {
+      "type": "comparison",
+      "layout": "comparison",
+      "required": true,
+      "title": "问题与不足",
+      "description": "遇到的问题、存在的不足、未达预期项"
+    },
+    {
+      "type": "matrix",
+      "layout": "matrix",
+      "required": false,
+      "title": "根因分析",
+      "description": "问题归因分析、影响因素矩阵、根本原因定位"
+    },
+    {
+      "type": "two-column",
+      "layout": "two-column",
+      "required": true,
+      "title": "经验与教训",
+      "description": "可复用经验、需要吸取的教训、认知升级"
+    },
+    {
+      "type": "process-flow",
+      "layout": "process-flow",
+      "required": false,
+      "title": "流程改进",
+      "description": "流程优化建议、协作机制改进、工具方法沉淀"
+    },
+    {
+      "type": "table-report",
+      "layout": "table-report",
+      "required": false,
+      "title": "资源投入",
+      "description": "人力投入、成本使用、资源消耗统计"
+    },
+    {
+      "type": "roadmap",
+      "layout": "roadmap",
+      "required": true,
+      "title": "后续计划",
+      "description": "下一步行动、后续规划、待办事项"
+    },
+    {
+      "type": "summary",
+      "layout": "summary",
+      "required": true,
+      "title": "总结与感谢",
+      "description": "核心总结、致谢、行动项清单"
+    },
+    {
+      "type": "qa",
+      "layout": "qa",
+      "required": true,
+      "title": "Q&A",
+      "description": "问答交流页"
+    }
+  ],
+  "defaultComponents": ["title", "subtitle", "body-text", "bullet-list", "metric-card", "timeline-node", "comparison-panel", "process-node", "table", "callout", "footer"],
+  "style": {
+    "tone": "reflective",
+    "visualStyle": "balanced",
+    "recommendedFonts": ["system-ui", "-apple-system", "Segoe UI"],
+    "accentUsage": "moderate",
+    "iconStyle": "outline"
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "id": "default-dark",
+  "name": "默认深色",
+  "version": "1.0.0",
+  "colors": {
+    "background": "#0F172A",
+    "surface": "#1E293B",
+    "surfaceAlt": "#334155",
+    "primary": "#F8FAFC",
+    "secondary": "#CBD5E1",
+    "tertiary": "#94A3B8",
+    "accent": "#60A5FA",
+    "accentSoft": "#1E3A5F",
+    "accentHover": "#3B82F6",
+    "positive": "#34D399",
+    "positiveSoft": "#064E3B",
+    "warning": "#FBBF24",
+    "warningSoft": "#78350F",
+    "danger": "#F87171",
+    "dangerSoft": "#7F1D1D",
+    "line": "#334155",
+    "lineStrong": "#475569",
+    "textPrimary": "#F8FAFC",
+    "textSecondary": "#CBD5E1",
+    "textTertiary": "#64748B",
+    "textOnAccent": "#0F172A",
+    "overlay": "rgba(0, 0, 0, 0.6)"
+  },
+  "fonts": {
+    "heading": {
+      "family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
+      "fallback": "sans-serif"
+    },
+    "body": {
+      "family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
+      "fallback": "sans-serif"
+    },
+    "mono": {
+      "family": "'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', Menlo, Consolas, monospace",
+      "fallback": "monospace"
+    }
+  },
+  "typography": {
+    "coverTitle": {
+      "size": 64,
+      "weight": 700,
+      "lineHeight": 1.15
+    },
+    "coverSubtitle": {
+      "size": 28,
+      "weight": 400,
+      "lineHeight": 1.5
+    },
+    "sectionTitle": {
+      "size": 56,
+      "weight": 700,
+      "lineHeight": 1.2
+    },
+    "slideTitle": {
+      "size": 40,
+      "weight": 600,
+      "lineHeight": 1.25
+    },
+    "slideSubtitle": {
+      "size": 24,
+      "weight": 400,
+      "lineHeight": 1.5
+    },
+    "bodyLarge": {
+      "size": 24,
+      "weight": 400,
+      "lineHeight": 1.6
+    },
+    "body": {
+      "size": 20,
+      "weight": 400,
+      "lineHeight": 1.65
+    },
+    "bodySmall": {
+      "size": 18,
+      "weight": 400,
+      "lineHeight": 1.6
+    },
+    "caption": {
+      "size": 16,
+      "weight": 400,
+      "lineHeight": 1.5
+    },
+    "metricValue": {
+      "size": 56,
+      "weight": 700,
+      "lineHeight": 1.1
+    },
+    "metricLabel": {
+      "size": 18,
+      "weight": 500,
+      "lineHeight": 1.4
+    }
+  },
+  "spacing": {
+    "pageX": 96,
+    "pageY": 72,
+    "sectionGap": 48,
+    "elementGap": 24,
+    "cardPadding": 32,
+    "cardGap": 20,
+    "listIndent": 28,
+    "listGap": 12
+  },
+  "shape": {
+    "borderRadius": 12,
+    "borderRadiusSmall": 6,
+    "borderRadiusLarge": 20,
+    "borderWidth": 1,
+    "borderWidthStrong": 2
+  },
+  "shadow": {
+    "card": "0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)",
+    "elevated": "0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -1px rgba(0,0,0,0.3)",
+    "float": "0 10px 15px -3px rgba(0,0,0,0.5), 0 4px 6px -2px rgba(0,0,0,0.3)"
+  },
+  "charts": {
+    "palette": [
+      "#60A5FA",
+      "#22D3EE",
+      "#34D399",
+      "#FBBF24",
+      "#F87171",
+      "#A78BFA",
+      "#F472B6",
+      "#94A3B8"
+    ],
+    "gridColor": "#334155",
+    "axisColor": "#64748B"
+  },
+  "footer": {
+    "showPageNumber": true,
+    "showBrand": true,
+    "brandText": "",
+    "textColor": "#64748B",
+    "fontSize": 14
+  },
+  "logo": {
+    "position": "top-left",
+    "height": 32,
+    "marginX": 96,
+    "marginY": 48
+  }
+}

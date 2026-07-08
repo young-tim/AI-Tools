@@ -1,0 +1,13 @@
+{
+  "name": "@ai-tools/ppt-smith-skill",
+  "version": "0.2.0",
+  "private": true,
+  "description": "PptSmith - AI Presentation Compiler powered by officecli",
+  "bin": {
+    "pptsmith": "scripts/pptsmith.sh"
+  },
+  "scripts": {
+    "pptsmith": "bash ./scripts/pptsmith.sh",
+    "validate": "bash ./scripts/pptsmith.sh validate --input ./examples/ai-consulting-deck.json"
+  }
+}

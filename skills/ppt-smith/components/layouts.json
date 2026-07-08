@@ -1,0 +1,527 @@
+{
+  "version": "1.0",
+  "layouts": [
+    {
+      "id": "cover",
+      "name": "封面页",
+      "description": "演示稿封面页，包含主标题、副标题、日期/作者信息，通常使用背景装饰营造视觉冲击力",
+      "recommendedComponents": ["title", "subtitle", "footer", "background-art", "image"],
+      "contentAreas": [
+        {
+          "id": "hero",
+          "name": "主视觉区域",
+          "description": "封面核心区域，放置大标题和主视觉元素",
+          "recommendedComponents": ["title", "subtitle", "background-art"]
+        },
+        {
+          "id": "meta",
+          "name": "元信息区域",
+          "description": "放置作者、日期、版本等辅助信息",
+          "recommendedComponents": ["body-text", "footer"]
+        },
+        {
+          "id": "branding",
+          "name": "品牌区域",
+          "description": "放置Logo或品牌标识",
+          "recommendedComponents": ["image", "footer"]
+        }
+      ],
+      "maxDensity": "low"
+    },
+    {
+      "id": "section",
+      "name": "章节过渡页",
+      "description": "章节分隔页，用于切换主题，通常包含章节编号、章节标题和简短引导语",
+      "recommendedComponents": ["title", "subtitle", "background-art"],
+      "contentAreas": [
+        {
+          "id": "section-number",
+          "name": "章节编号区域",
+          "description": "大字号章节编号，如'01'、'Part 1'",
+          "recommendedComponents": ["title"]
+        },
+        {
+          "id": "section-title",
+          "name": "章节标题区域",
+          "description": "章节名称和简短描述",
+          "recommendedComponents": ["title", "subtitle"]
+        },
+        {
+          "id": "decoration",
+          "name": "装饰区域",
+          "description": "背景装饰元素",
+          "recommendedComponents": ["background-art"]
+        }
+      ],
+      "maxDensity": "low"
+    },
+    {
+      "id": "agenda",
+      "name": "目录页",
+      "description": "演示议程/目录页，列出所有章节及页码，帮助听众了解整体结构",
+      "recommendedComponents": ["title", "bullet-list", "body-text"],
+      "contentAreas": [
+        {
+          "id": "header",
+          "name": "标题区域",
+          "description": "页面标题，如'目录'或'议程'",
+          "recommendedComponents": ["title", "subtitle"]
+        },
+        {
+          "id": "agenda-list",
+          "name": "目录列表区域",
+          "description": "章节列表，包含编号、标题和页码",
+          "recommendedComponents": ["bullet-list", "body-text"]
+        },
+        {
+          "id": "highlight",
+          "name": "高亮区域",
+          "description": "可选的当前章节高亮或整体进度指示",
+          "recommendedComponents": ["callout", "icon"]
+        }
+      ],
+      "maxDensity": "medium"
+    },
+    {
+      "id": "single-message",
+      "name": "单一结论页",
+      "description": "突出单一核心结论的页面，通常用于关键洞察、重要发现或金句页，文字精炼、视觉聚焦",
+      "recommendedComponents": ["title", "quote", "callout", "background-art"],
+      "contentAreas": [
+        {
+          "id": "headline",
+          "name": "核心结论区域",
+          "description": "大字号核心结论陈述",
+          "recommendedComponents": ["title", "quote"]
+        },
+        {
+          "id": "supporting",
+          "name": "支撑说明区域",
+          "description": "简短补充说明或数据支撑",
+          "recommendedComponents": ["subtitle", "body-text", "callout"]
+        },
+        {
+          "id": "visual",
+          "name": "视觉辅助区域",
+          "description": "图标或背景装饰增强视觉效果",
+          "recommendedComponents": ["icon", "background-art"]
+        }
+      ],
+      "maxDensity": "low"
+    },
+    {
+      "id": "two-column",
+      "name": "双栏内容页",
+      "description": "左右双栏布局，适合展示两组并列信息、图文对照或论点+论据结构",
+      "recommendedComponents": ["title", "subtitle", "body-text", "bullet-list", "image", "metric-card"],
+      "contentAreas": [
+        {
+          "id": "header",
+          "name": "标题区域",
+          "description": "页面标题和副标题（通栏）",
+          "recommendedComponents": ["title", "subtitle"]
+        },
+        {
+          "id": "left-column",
+          "name": "左栏区域",
+          "description": "左侧内容栏",
+          "recommendedComponents": ["body-text", "bullet-list", "image", "metric-card", "callout"]
+        },
+        {
+          "id": "right-column",
+          "name": "右栏区域",
+          "description": "右侧内容栏",
+          "recommendedComponents": ["body-text", "bullet-list", "image", "metric-card", "chart"]
+        }
+      ],
+      "maxDensity": "medium"
+    },
+    {
+      "id": "three-card",
+      "name": "三卡片信息页",
+      "description": "三列卡片布局，适合展示三个要点、三项能力、三个阶段或三类分组信息",
+      "recommendedComponents": ["title", "subtitle", "metric-card", "icon", "body-text", "bullet-list"],
+      "contentAreas": [
+        {
+          "id": "header",
+          "name": "标题区域",
+          "description": "页面标题和副标题",
+          "recommendedComponents": ["title", "subtitle"]
+        },
+        {
+          "id": "card-1",
+          "name": "卡片1区域",
+          "description": "第一张卡片内容",
+          "recommendedComponents": ["metric-card", "icon", "body-text", "bullet-list"]
+        },
+        {
+          "id": "card-2",
+          "name": "卡片2区域",
+          "description": "第二张卡片内容",
+          "recommendedComponents": ["metric-card", "icon", "body-text", "bullet-list"]
+        },
+        {
+          "id": "card-3",
+          "name": "卡片3区域",
+          "description": "第三张卡片内容",
+          "recommendedComponents": ["metric-card", "icon", "body-text", "bullet-list"]
+        }
+      ],
+      "maxDensity": "medium"
+    },
+    {
+      "id": "image-text",
+      "name": "图文组合页",
+      "description": "图片与文字组合布局，一侧展示视觉素材（截图、产品图、照片），另一侧配文字说明",
+      "recommendedComponents": ["title", "subtitle", "image", "body-text", "bullet-list", "callout"],
+      "contentAreas": [
+        {
+          "id": "header",
+          "name": "标题区域",
+          "description": "页面标题和副标题",
+          "recommendedComponents": ["title", "subtitle"]
+        },
+        {
+          "id": "visual-area",
+          "name": "图片区域",
+          "description": "主视觉图片展示区域",
+          "recommendedComponents": ["image", "icon"]
+        },
+        {
+          "id": "text-area",
+          "name": "文字区域",
+          "description": "说明文字、要点列表区域",
+          "recommendedComponents": ["body-text", "bullet-list", "callout", "quote"]
+        }
+      ],
+      "maxDensity": "medium"
+    },
+    {
+      "id": "comparison",
+      "name": "对比分析页",
+      "description": "专门用于方案对比、前后对比、优劣势分析的布局，左右两侧结构对称",
+      "recommendedComponents": ["title", "subtitle", "comparison-panel", "bullet-list", "metric-card"],
+      "contentAreas": [
+        {
+          "id": "header",
+          "name": "标题区域",
+          "description": "页面标题和对比维度说明",
+          "recommendedComponents": ["title", "subtitle"]
+        },
+        {
+          "id": "comparison-content",
+          "name": "对比内容区域",
+          "description": "主要对比面板区域",
+          "recommendedComponents": ["comparison-panel"]
+        },
+        {
+          "id": "conclusion",
+          "name": "结论区域",
+          "description": "对比结论或关键发现",
+          "recommendedComponents": ["callout", "body-text", "metric-card"]
+        }
+      ],
+      "maxDensity": "medium"
+    },
+    {
+      "id": "kpi-dashboard",
+      "name": "指标数据页",
+      "description": "核心KPI指标仪表盘布局，突出多个关键数据指标，可配合迷你图表展示趋势",
+      "recommendedComponents": ["title", "subtitle", "metric-card", "bar-chart", "line-chart", "pie-chart"],
+      "contentAreas": [
+        {
+          "id": "header",
+          "name": "标题区域",
+          "description": "页面标题和数据时间范围说明",
+          "recommendedComponents": ["title", "subtitle"]
+        },
+        {
+          "id": "kpi-row",
+          "name": "指标卡片区",
+          "description": "一排核心指标卡片，建议3-6个",
+          "recommendedComponents": ["metric-card"]
+        },
+        {
+          "id": "chart-area",
+          "name": "图表区域",
+          "description": "趋势图或分布图表",
+          "recommendedComponents": ["bar-chart", "line-chart", "pie-chart"]
+        },
+        {
+          "id": "footnote",
+          "name": "注释区域",
+          "description": "数据来源、口径说明",
+          "recommendedComponents": ["callout", "body-text"]
+        }
+      ],
+      "maxDensity": "high"
+    },
+    {
+      "id": "process-flow",
+      "name": "流程图页",
+      "description": "业务流程或处理步骤展示布局，节点水平或垂直排列，带连接线和箭头",
+      "recommendedComponents": ["title", "subtitle", "process-node", "icon", "callout"],
+      "contentAreas": [
+        {
+          "id": "header",
+          "name": "标题区域",
+          "description": "页面标题和流程概述",
+          "recommendedComponents": ["title", "subtitle"]
+        },
+        {
+          "id": "flow-canvas",
+          "name": "流程画布区域",
+          "description": "流程图主体区域，放置流程节点",
+          "recommendedComponents": ["process-node"]
+        },
+        {
+          "id": "annotation",
+          "name": "注释区域",
+          "description": "关键节点说明或注意事项",
+          "recommendedComponents": ["callout", "body-text", "icon"]
+        }
+      ],
+      "maxDensity": "medium"
+    },
+    {
+      "id": "timeline",
+      "name": "时间轴页",
+      "description": "时间轴布局，用于展示历史沿革、项目里程碑、发展历程等时间序列事件",
+      "recommendedComponents": ["title", "subtitle", "timeline-node", "icon", "callout"],
+      "contentAreas": [
+        {
+          "id": "header",
+          "name": "标题区域",
+          "description": "页面标题和时间范围说明",
+          "recommendedComponents": ["title", "subtitle"]
+        },
+        {
+          "id": "timeline-canvas",
+          "name": "时间轴区域",
+          "description": "时间轴主体区域",
+          "recommendedComponents": ["timeline-node"]
+        },
+        {
+          "id": "milestone-note",
+          "name": "里程碑注释",
+          "description": "重点里程碑的补充说明",
+          "recommendedComponents": ["callout", "body-text", "icon"]
+        }
+      ],
+      "maxDensity": "medium"
+    },
+    {
+      "id": "roadmap",
+      "name": "路线图页",
+      "description": "实施路线图/规划图布局，按时间阶段展示目标、交付物和关键里程碑，通常为泳道式结构",
+      "recommendedComponents": ["title", "subtitle", "timeline-node", "process-node", "metric-card", "callout"],
+      "contentAreas": [
+        {
+          "id": "header",
+          "name": "标题区域",
+          "description": "页面标题和路线图说明",
+          "recommendedComponents": ["title", "subtitle"]
+        },
+        {
+          "id": "phases",
+          "name": "阶段区域",
+          "description": "各阶段时间块和目标描述",
+          "recommendedComponents": ["process-node", "timeline-node", "metric-card"]
+        },
+        {
+          "id": "deliverables",
+          "name": "交付物区域",
+          "description": "各阶段关键交付物列表",
+          "recommendedComponents": ["bullet-list", "body-text", "icon"]
+        },
+        {
+          "id": "risks",
+          "name": "风险提示区域",
+          "description": "关键风险或依赖项说明",
+          "recommendedComponents": ["callout"]
+        }
+      ],
+      "maxDensity": "high"
+    },
+    {
+      "id": "architecture",
+      "name": "架构图页",
+      "description": "技术架构或业务架构展示布局，通常为分层结构，包含多层模块、组件和连接关系",
+      "recommendedComponents": ["title", "subtitle", "process-node", "icon", "image", "callout"],
+      "contentAreas": [
+        {
+          "id": "header",
+          "name": "标题区域",
+          "description": "页面标题和架构概述",
+          "recommendedComponents": ["title", "subtitle"]
+        },
+        {
+          "id": "architecture-diagram",
+          "name": "架构图区域",
+          "description": "架构图主体区域，可使用SVG/图片或组件组合",
+          "recommendedComponents": ["image", "process-node", "icon"]
+        },
+        {
+          "id": "legend",
+          "name": "图例区域",
+          "description": "架构图层级说明、图例、组件解释",
+          "recommendedComponents": ["body-text", "bullet-list", "callout"]
+        }
+      ],
+      "maxDensity": "high"
+    },
+    {
+      "id": "matrix",
+      "name": "四象限矩阵页",
+      "description": "二维矩阵/四象限分析布局，如BCG矩阵、SWOT分析、优先级矩阵、影响-努力矩阵等",
+      "recommendedComponents": ["title", "subtitle", "callout", "icon", "body-text", "metric-card"],
+      "contentAreas": [
+        {
+          "id": "header",
+          "name": "标题区域",
+          "description": "页面标题和矩阵维度说明",
+          "recommendedComponents": ["title", "subtitle"]
+        },
+        {
+          "id": "quadrant-chart",
+          "name": "矩阵区域",
+          "description": "四象限矩阵主体，含坐标轴和象限标签",
+          "recommendedComponents": ["image", "process-node", "icon"]
+        },
+        {
+          "id": "axis-labels",
+          "name": "坐标轴标签区域",
+          "description": "X轴Y轴维度标签和说明",
+          "recommendedComponents": ["body-text"]
+        },
+        {
+          "id": "insight",
+          "name": "洞察区域",
+          "description": "矩阵分析结论和关键洞察",
+          "recommendedComponents": ["callout", "bullet-list"]
+        }
+      ],
+      "maxDensity": "medium"
+    },
+    {
+      "id": "funnel",
+      "name": "漏斗模型页",
+      "description": "漏斗图/转化漏斗布局，展示各阶段转化、筛选或流失情况，从宽到窄逐层递进",
+      "recommendedComponents": ["title", "subtitle", "bar-chart", "metric-card", "callout", "icon"],
+      "contentAreas": [
+        {
+          "id": "header",
+          "name": "标题区域",
+          "description": "页面标题和漏斗说明",
+          "recommendedComponents": ["title", "subtitle"]
+        },
+        {
+          "id": "funnel-visual",
+          "name": "漏斗图区域",
+          "description": "漏斗图主体，展示各层级",
+          "recommendedComponents": ["bar-chart", "image", "process-node"]
+        },
+        {
+          "id": "metrics-side",
+          "name": "数据指标区域",
+          "description": "各阶段转化率、流失率等关键数据",
+          "recommendedComponents": ["metric-card", "body-text", "bullet-list"]
+        },
+        {
+          "id": "bottleneck",
+          "name": "瓶颈分析区域",
+          "description": "关键瓶颈识别和优化建议",
+          "recommendedComponents": ["callout"]
+        }
+      ],
+      "maxDensity": "medium"
+    },
+    {
+      "id": "table-report",
+      "name": "表格报告页",
+      "description": "数据表格报告布局，以结构化表格为核心，适合展示明细数据、对比数据、参数配置等",
+      "recommendedComponents": ["title", "subtitle", "table", "metric-card", "callout"],
+      "contentAreas": [
+        {
+          "id": "header",
+          "name": "标题区域",
+          "description": "页面标题和表格数据说明",
+          "recommendedComponents": ["title", "subtitle"]
+        },
+        {
+          "id": "table-content",
+          "name": "表格区域",
+          "description": "数据表格主体",
+          "recommendedComponents": ["table"]
+        },
+        {
+          "id": "summary-row",
+          "name": "汇总区域",
+          "description": "表格数据汇总、关键发现",
+          "recommendedComponents": ["metric-card", "callout", "body-text"]
+        },
+        {
+          "id": "source-note",
+          "name": "来源注释区域",
+          "description": "数据来源、统计口径说明",
+          "recommendedComponents": ["body-text"]
+        }
+      ],
+      "maxDensity": "high"
+    },
+    {
+      "id": "summary",
+      "name": "总结行动项页",
+      "description": "总结与下一步行动页，用于演示收尾，回顾核心结论并列出明确的行动项/责任人/时间节点",
+      "recommendedComponents": ["title", "subtitle", "bullet-list", "metric-card", "callout", "table", "icon"],
+      "contentAreas": [
+        {
+          "id": "header",
+          "name": "标题区域",
+          "description": "总结标题，如'核心结论'、'下一步计划'",
+          "recommendedComponents": ["title", "subtitle"]
+        },
+        {
+          "id": "key-takeaways",
+          "name": "核心结论区域",
+          "description": "回顾关键发现和核心结论，建议3-5条",
+          "recommendedComponents": ["bullet-list", "metric-card", "icon"]
+        },
+        {
+          "id": "action-items",
+          "name": "行动项区域",
+          "description": "具体行动项列表，含责任人、时间节点",
+          "recommendedComponents": ["table", "bullet-list", "callout"]
+        }
+      ],
+      "maxDensity": "medium"
+    },
+    {
+      "id": "qa",
+      "name": "问答结束页",
+      "description": "问答页/演示结束页，通常展示'Thank You'、'Q&A'、联系方式，简洁收尾",
+      "recommendedComponents": ["title", "subtitle", "body-text", "icon", "background-art", "footer"],
+      "contentAreas": [
+        {
+          "id": "qa-headline",
+          "name": "主标题区域",
+          "description": "Q&A或感谢语大标题",
+          "recommendedComponents": ["title", "background-art"]
+        },
+        {
+          "id": "contact-info",
+          "name": "联系信息区域",
+          "description": "联系方式、邮箱、二维码等",
+          "recommendedComponents": ["subtitle", "body-text", "image", "icon"]
+        },
+        {
+          "id": "closing-note",
+          "name": "结束语区域",
+          "description": "致谢语或结语",
+          "recommendedComponents": ["quote", "callout", "footer"]
+        }
+      ],
+      "maxDensity": "low"
+    }
+  ]
+}

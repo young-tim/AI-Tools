@@ -1,0 +1,145 @@
+{
+  "id": "product-proposal",
+  "name": "产品方案模板",
+  "version": "1.0.0",
+  "description": "适用于产品方案、需求汇报、立项材料等场景，强调用户价值、产品逻辑与可行性论证",
+  "recommendedThemes": ["default-light", "enterprise-light", "tech-gradient"],
+  "defaultTheme": "default-light",
+  "contentDensity": "medium",
+  "slideStructure": [
+    {
+      "type": "cover",
+      "layout": "cover",
+      "required": true,
+      "title": "封面",
+      "description": "产品/项目名称、版本、汇报人、日期"
+    },
+    {
+      "type": "agenda",
+      "layout": "agenda",
+      "required": true,
+      "title": "目录",
+      "description": "汇报议程与内容导航"
+    },
+    {
+      "type": "single-message",
+      "layout": "single-message",
+      "required": true,
+      "title": "产品概述",
+      "description": "一句话产品定位与核心价值主张"
+    },
+    {
+      "type": "section",
+      "layout": "section",
+      "required": false,
+      "title": "章节过渡",
+      "description": "分章节标识页"
+    },
+    {
+      "type": "two-column",
+      "layout": "two-column",
+      "required": true,
+      "title": "市场背景与用户痛点",
+      "description": "行业趋势、目标用户、核心需求与痛点分析"
+    },
+    {
+      "type": "three-card",
+      "layout": "three-card",
+      "required": true,
+      "title": "用户画像与场景",
+      "description": "核心用户角色、典型使用场景、用户旅程"
+    },
+    {
+      "type": "single-message",
+      "layout": "single-message",
+      "required": true,
+      "title": "产品目标",
+      "description": "业务目标、用户目标、成功标准"
+    },
+    {
+      "type": "image-text",
+      "layout": "image-text",
+      "required": false,
+      "title": "产品概念",
+      "description": "产品概念图、核心功能预览、设计理念"
+    },
+    {
+      "type": "architecture",
+      "layout": "architecture",
+      "required": true,
+      "title": "功能架构",
+      "description": "产品功能模块、信息架构、核心流程"
+    },
+    {
+      "type": "process-flow",
+      "layout": "process-flow",
+      "required": true,
+      "title": "核心用户流程",
+      "description": "关键用户操作路径与业务流程"
+    },
+    {
+      "type": "three-card",
+      "layout": "three-card",
+      "required": true,
+      "title": "核心特性",
+      "description": "三大核心功能亮点与差异化优势"
+    },
+    {
+      "type": "comparison",
+      "layout": "comparison",
+      "required": false,
+      "title": "竞品分析",
+      "description": "竞品对比、竞争优势、差异化定位"
+    },
+    {
+      "type": "roadmap",
+      "layout": "roadmap",
+      "required": true,
+      "title": "版本规划",
+      "description": "迭代计划、里程碑、版本路线图"
+    },
+    {
+      "type": "table-report",
+      "layout": "table-report",
+      "required": true,
+      "title": "资源与排期",
+      "description": "团队配置、人力投入、开发排期"
+    },
+    {
+      "type": "kpi-dashboard",
+      "layout": "kpi-dashboard",
+      "required": true,
+      "title": "预期效果与指标",
+      "description": "核心KPI、数据指标、收益预测"
+    },
+    {
+      "type": "two-column",
+      "layout": "two-column",
+      "required": false,
+      "title": "风险与应对",
+      "description": "潜在风险识别、应对策略与预案"
+    },
+    {
+      "type": "summary",
+      "layout": "summary",
+      "required": true,
+      "title": "总结与立项申请",
+      "description": "方案总结、立项诉求、决策建议"
+    },
+    {
+      "type": "qa",
+      "layout": "qa",
+      "required": true,
+      "title": "Q&A",
+      "description": "问答交流页"
+    }
+  ],
+  "defaultComponents": ["title", "subtitle", "body-text", "bullet-list", "metric-card", "image", "icon", "process-node", "table", "callout", "footer"],
+  "style": {
+    "tone": "professional",
+    "visualStyle": "clean",
+    "recommendedFonts": ["system-ui", "-apple-system", "Segoe UI"],
+    "accentUsage": "balanced",
+    "iconStyle": "solid"
+  }
+}

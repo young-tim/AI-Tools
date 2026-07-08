@@ -52,7 +52,8 @@ npx skills add ./skills/dify-manage -g -y --agent cursor
 
 | Skill                                | 说明                        |
 | ------------------------------------ | ------------------------- |
-| [decksmith](./skills/decksmith/)     | AI 演示稿编译器：直接输出 PPTX-native、高设计感、内容有效、可编辑的客户交付型 PPT |
+| [decksmith](./skills/decksmith/)     | AI 演示稿编译器：直接输出 PPTX-native、高设计感、内容有效、可编辑的客户交付型 PPT（Node.js/PptxGenJS 版本） |
+| [ppt-smith](./skills/ppt-smith/)     | AI 演示稿编译器：基于 officecli，直接输出 PPTX-native、高设计感、内容有效、可编辑的客户交付型 PPT（officecli 版本） |
 | [dify-manage](./skills/dify-manage/) | Dify DSL 拉取/编辑/部署；文件缓存与上传 |
 
 

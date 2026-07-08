@@ -1,0 +1,530 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://decksmith.dev/schema/presentation.schema.json",
+  "title": "DeckSmith Slide IR",
+  "description": "DeckSmith 演示稿中间表示（Slide Intermediate Representation）的 JSON Schema 定义。Layout 负责自动布局，组件 position 为可选字段。",
+  "type": "object",
+  "required": ["version", "meta", "theme", "settings", "slides"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Slide IR 版本号",
+      "pattern": "^\\d+\\.\\d+$",
+      "examples": ["1.0"]
+    },
+    "meta": {
+      "type": "object",
+      "description": "演示稿元信息",
+      "required": ["title", "author", "language", "ratio", "createdAt"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "演示稿标题",
+          "minLength": 1,
+          "examples": ["企业AI能力建设咨询方案"]
+        },
+        "slug": {
+          "type": "string",
+          "description": "输出工作区标识（可选）。用于生成 .decksmith/decks/<slug>/，必须为小写字母、数字和连字符。",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,78}[a-z0-9]$",
+          "examples": ["enterprise-ai-capability-plan"]
+        },
+        "author": {
+          "type": "string",
+          "description": "作者/团队名称",
+          "examples": ["咨询团队"]
+        },
+        "language": {
+          "type": "string",
+          "description": "语言代码",
+          "enum": ["zh-CN", "zh-TW", "en-US", "ja-JP", "ko-KR"],
+          "default": "zh-CN"
+        },
+        "ratio": {
+          "type": "string",
+          "description": "页面宽高比",
+          "enum": ["16:9", "4:3", "1:1"],
+          "default": "16:9"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "创建日期（ISO 8601格式）",
+          "format": "date",
+          "examples": ["2026-07-04"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "更新日期（ISO 8601格式，可选）",
+          "format": "date"
+        },
+        "description": {
+          "type": "string",
+          "description": "演示稿描述/摘要（可选）"
+        },
+        "company": {
+          "type": "string",
+          "description": "公司/组织名称占位符（可选）",
+          "examples": ["[Company Name]"]
+        },
+        "client": {
+          "type": "string",
+          "description": "客户名称（可选，用于封面）",
+          "examples": ["[Client Name]"]
+        },
+        "tags": {
+          "type": "array",
+          "description": "标签数组（可选）",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "theme": {
+      "type": "string",
+      "description": "主题ID，控制全局视觉风格",
+      "enum": ["default-light", "default-dark", "enterprise-light", "business-blue", "tech-gradient"],
+      "examples": ["enterprise-light"]
+    },
+    "template": {
+      "type": "string",
+      "description": "模板ID，定义组件组合和布局预设",
+      "enum": ["business-consulting", "product-proposal", "sales-deck", "data-report", "technical-architecture", "project-review"],
+      "examples": ["business-consulting"]
+    },
+    "settings": {
+      "type": "object",
+      "description": "PPTX画布与生成设置",
+      "required": ["canvasWidth", "canvasHeight", "pptLayout", "editablePriority"],
+      "properties": {
+        "canvasWidth": {
+          "type": "integer",
+          "description": "画布宽度（像素），16:9默认1920",
+          "default": 1920,
+          "minimum": 800,
+          "maximum": 3840,
+          "examples": [1920]
+        },
+        "canvasHeight": {
+          "type": "integer",
+          "description": "画布高度（像素），16:9默认1080",
+          "default": 1080,
+          "minimum": 600,
+          "maximum": 2160,
+          "examples": [1080]
+        },
+        "pptLayout": {
+          "type": "string",
+          "description": "PowerPoint布局类型",
+          "enum": ["LAYOUT_WIDE", "LAYOUT_STANDARD", "LAYOUT_CUSTOM"],
+          "default": "LAYOUT_WIDE"
+        },
+        "editablePriority": {
+          "type": "string",
+          "description": "PPTX可编辑性优先级策略",
+          "enum": ["native", "hybrid", "fidelity"],
+          "default": "hybrid",
+          "examples": ["hybrid"]
+        },
+        "defaultFontFamily": {
+          "type": "string",
+          "description": "默认字体族（可选）",
+          "examples": ["Inter", "PingFang SC", "Microsoft YaHei"]
+        },
+        "marginTop": {
+          "type": "integer",
+          "description": "顶部安全边距（像素）",
+          "default": 72,
+          "minimum": 0
+        },
+        "marginBottom": {
+          "type": "integer",
+          "description": "底部安全边距（像素）",
+          "default": 72,
+          "minimum": 0
+        },
+        "marginLeft": {
+          "type": "integer",
+          "description": "左侧安全边距（像素）",
+          "default": 96,
+          "minimum": 0
+        },
+        "marginRight": {
+          "type": "integer",
+          "description": "右侧安全边距（像素）",
+          "default": 96,
+          "minimum": 0
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "description": "资产清单，所有引用的图片、图标、字体等资源",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "path"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "资产唯一ID，被组件props引用",
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+            "examples": ["logo-main", "chart-trend-01"]
+          },
+          "type": {
+            "type": "string",
+            "description": "资产类型",
+            "enum": ["image", "icon", "font", "chart", "svg", "video", "generated"]
+          },
+          "path": {
+            "type": "string",
+            "description": "资产相对路径（相对于当前 deck 工作区，如 .decksmith/decks/<slug>/）",
+            "examples": ["assets/images/logo.png", "assets/icons/check-circle.svg"]
+          },
+          "mimeType": {
+            "type": "string",
+            "description": "MIME类型（可选）",
+            "examples": ["image/png", "image/svg+xml"]
+          },
+          "width": {
+            "type": "integer",
+            "description": "原始宽度（像素，可选）",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "description": "原始高度（像素，可选）",
+            "minimum": 1
+          },
+          "alt": {
+            "type": "string",
+            "description": "无障碍替代文本（可选）"
+          },
+          "source": {
+            "type": "string",
+            "description": "资产来源说明（可选）",
+            "examples": ["uploaded", "generated", "Lucide", "unDraw"]
+          },
+          "sourceUrl": {
+            "type": "string",
+            "description": "资产原始来源URL（可选）",
+            "examples": ["https://lucide.dev/icons/check-circle", "https://undraw.co/illustrations"]
+          },
+          "license": {
+            "type": "string",
+            "description": "资产许可名称（可选）",
+            "examples": ["ISC", "unDraw License", "user-provided"]
+          },
+          "attributionRequired": {
+            "type": "boolean",
+            "description": "是否需要署名（可选）",
+            "default": false
+          }
+        }
+      }
+    },
+    "themeOverrides": {
+      "type": "object",
+      "description": "主题覆盖配置（可选），用于微调颜色、字体等",
+      "additionalProperties": true
+    },
+    "footer": {
+      "type": "object",
+      "description": "全局页脚配置（可选）",
+      "properties": {
+        "brandText": {
+          "type": "string",
+          "description": "品牌文字",
+          "default": "[Your Brand]"
+        },
+        "showPageNumber": {
+          "type": "boolean",
+          "default": true
+        },
+        "pageNumberPosition": {
+          "type": "string",
+          "enum": ["left", "center", "right"],
+          "default": "right"
+        },
+        "logoId": {
+          "type": "string",
+          "description": "Logo资产ID（可选）"
+        }
+      }
+    },
+    "slides": {
+      "type": "array",
+      "description": "幻灯片页面数组",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/Slide"
+      }
+    }
+  },
+  "definitions": {
+    "Slide": {
+      "type": "object",
+      "description": "单页幻灯片定义。Layout系统负责自动布局，组件不需要手动指定position。",
+      "required": ["id", "layout", "components"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "页面唯一ID",
+          "pattern": "^slide-[a-zA-Z0-9_-]+$",
+          "examples": ["slide-01", "slide-cover", "slide-summary"]
+        },
+        "type": {
+          "type": "string",
+          "description": "页面类型（可选，用于语义标识）",
+          "examples": ["cover", "section", "content", "comparison", "summary", "qa"]
+        },
+        "layout": {
+          "type": "string",
+          "description": "布局ID，决定页面结构和内容区域划分",
+          "enum": ["cover", "section", "agenda", "single-message", "two-column", "three-card", "image-text", "comparison", "kpi-dashboard", "process-flow", "timeline", "roadmap", "architecture", "matrix", "funnel", "table-report", "summary", "qa"]
+        },
+        "title": {
+          "type": "string",
+          "description": "页面标题，必须是结论式陈述（可选，也可通过title组件实现）"
+        },
+        "subtitle": {
+          "type": "string",
+          "description": "页面副标题/补充说明（可选）"
+        },
+        "client": {
+          "type": "string",
+          "description": "客户名称（可选，用于封面页）"
+        },
+        "themeVariant": {
+          "type": "string",
+          "description": "页面主题变体",
+          "enum": ["light", "dark", "accent", "transparent"],
+          "default": "light"
+        },
+        "components": {
+          "type": "array",
+          "description": "页面组件数组",
+          "items": {
+            "$ref": "#/definitions/Component"
+          }
+        },
+        "contentAreas": {
+          "type": "object",
+          "description": "内容区域组件映射（可选，key为contentArea ID，value为组件ID数组）",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "notes": {
+          "type": "string",
+          "description": "演讲者备注（可选）"
+        },
+        "footer": {
+          "type": "object",
+          "description": "页面级页脚覆盖（可选，不设置则使用全局footer）",
+          "properties": {
+            "brandText": {
+              "type": "string"
+            },
+            "pageNumber": {
+              "type": "string",
+              "description": "页码显示文本（支持 01、1/10 等格式）"
+            },
+            "hide": {
+              "type": "boolean",
+              "description": "是否隐藏此页页脚",
+              "default": false
+            }
+          }
+        },
+        "background": {
+          "type": "string",
+          "description": "页面背景色或background-art组件ID引用（可选）"
+        },
+        "qa": {
+          "type": "object",
+          "description": "页面级QA配置（可选）",
+          "properties": {
+            "maxTextDensity": {
+              "type": "string",
+              "description": "最大内容密度等级",
+              "enum": ["low", "medium", "high"],
+              "default": "medium"
+            },
+            "allowRasterFallback": {
+              "type": "boolean",
+              "description": "是否允许复杂区域光栅化回退",
+              "default": true
+            },
+            "minFontSize": {
+              "type": "integer",
+              "description": "最小字号限制（PPT字号）",
+              "default": 18,
+              "minimum": 12,
+              "maximum": 32
+            },
+            "skipPptxNative": {
+              "type": "boolean",
+              "description": "跳过原生PPTX生成，整页使用图片回退（可选）",
+              "default": false
+            }
+          }
+        },
+        "transition": {
+          "type": "string",
+          "description": "页面过渡效果（可选，保留给未来版本）",
+          "enum": ["none", "fade", "slide", "push"],
+          "default": "none"
+        }
+      }
+    },
+    "Component": {
+      "type": "object",
+      "description": "组件定义。属性可直接放在组件根级别，Layout负责自动布局，position为可选字段（仅自定义定位时使用）。",
+      "required": ["id", "type"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "组件唯一ID（页面内唯一）",
+          "examples": ["cover-title", "agenda-list", "metric-card-1"]
+        },
+        "type": {
+          "type": "string",
+          "description": "组件类型ID",
+          "enum": ["title", "subtitle", "body-text", "bullet-list", "metric-card", "image", "icon", "comparison-panel", "process-node", "timeline-node", "table", "bar-chart", "line-chart", "pie-chart", "quote", "callout", "footer", "background-art", "architecture-layer", "card", "three-card", "kpi-dashboard"]
+        },
+        "content": {
+          "type": "string",
+          "description": "文本内容（适用于title/subtitle/body-text/quote/callout等文本类组件）"
+        },
+        "items": {
+          "type": "array",
+          "description": "列表项（适用于bullet-list/metric-card等）",
+          "items": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "object", "additionalProperties": true }
+            ]
+          }
+        },
+        "props": {
+          "type": "object",
+          "description": "组件属性（可选，所有组件特有属性也可直接放在组件根级别）"
+        },
+        "position": {
+          "$ref": "#/definitions/Position",
+          "description": "自定义位置和尺寸（可选，Layout自动布局时不需要指定）"
+        },
+        "style": {
+          "$ref": "#/definitions/ComponentStyle",
+          "description": "样式控制（可选）"
+        },
+        "variant": {
+          "type": "string",
+          "description": "组件视觉变体（快捷方式，等同于style.variant）",
+          "examples": ["cover-main", "cover-sub", "agenda-numbered", "qa-text"]
+        },
+        "visible": {
+          "type": "boolean",
+          "description": "是否可见（可选，默认true）",
+          "default": true
+        },
+        "locked": {
+          "type": "boolean",
+          "description": "是否锁定（在编辑器中不可拖动，可选）",
+          "default": false
+        },
+        "dataLink": {
+          "type": "string",
+          "description": "数据绑定引用（可选，关联到source/data.json中的路径）"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Position": {
+      "type": "object",
+      "description": "组件在画布上的自定义位置和尺寸（仅在需要覆盖Layout自动布局时使用）",
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": {
+          "type": "number",
+          "description": "X坐标（左上角，从画布左侧开始）",
+          "minimum": 0,
+          "examples": [96]
+        },
+        "y": {
+          "type": "number",
+          "description": "Y坐标（左上角，从画布顶部开始）",
+          "minimum": 0,
+          "examples": [72]
+        },
+        "width": {
+          "type": "number",
+          "description": "组件宽度",
+          "minimum": 1,
+          "examples": [1728, 380]
+        },
+        "height": {
+          "type": "number",
+          "description": "组件高度",
+          "minimum": 1,
+          "examples": [80, 200]
+        },
+        "zIndex": {
+          "type": "integer",
+          "description": "层叠顺序（可选，数值越大越在上层）",
+          "default": 0
+        },
+        "rotation": {
+          "type": "number",
+          "description": "旋转角度（度，可选）",
+          "default": 0,
+          "minimum": -360,
+          "maximum": 360
+        }
+      }
+    },
+    "ComponentStyle": {
+      "type": "object",
+      "description": "组件样式控制",
+      "properties": {
+        "variant": {
+          "type": "string",
+          "description": "组件视觉变体",
+          "examples": ["cover-main", "cover-sub", "cover-meta", "agenda-numbered", "card", "elevated"]
+        },
+        "color": {
+          "type": "string",
+          "description": "色彩语义",
+          "enum": ["default", "primary", "secondary", "accent", "success", "warning", "danger", "info", "muted", "neutral"],
+          "default": "default"
+        },
+        "align": {
+          "type": "string",
+          "description": "对齐方式",
+          "enum": ["left", "center", "right", "justify"],
+          "default": "left"
+        },
+        "verticalAlign": {
+          "type": "string",
+          "description": "垂直对齐（可选）",
+          "enum": ["top", "middle", "bottom"],
+          "default": "top"
+        },
+        "fontSize": {
+          "type": "string",
+          "description": "字号覆盖（可选，优先于组件默认）",
+          "enum": ["xs", "sm", "base", "md", "lg", "xl", "2xl", "3xl", "4xl", "5xl"]
+        },
+        "fontWeight": {
+          "type": "string",
+          "description": "字重（可选）",
+          "enum": ["light", "normal", "medium", "semibold", "bold"],
+          "default": "normal"
+        }
+      }
+    }
+  }
+}

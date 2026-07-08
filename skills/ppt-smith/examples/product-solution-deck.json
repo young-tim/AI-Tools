@@ -1,0 +1,532 @@
+{
+  "version": "1.0",
+  "meta": {
+    "title": "SmartFlow 智能工作流产品方案",
+    "slug": "smartflow-product-solution",
+    "author": "产品团队",
+    "language": "zh-CN",
+    "ratio": "16:9",
+    "createdAt": "2026-07-04"
+  },
+  "theme": "default-light",
+  "template": "product-proposal",
+  "settings": {
+    "canvasWidth": 1920,
+    "canvasHeight": 1080,
+    "pptLayout": "LAYOUT_WIDE",
+    "editablePriority": "hybrid"
+  },
+  "assets": [],
+  "slides": [
+    {
+      "id": "slide-01",
+      "type": "cover",
+      "layout": "cover",
+      "title": "SmartFlow",
+      "subtitle": "新一代AI驱动的智能工作流平台",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "cover-product",
+          "type": "title",
+          "content": "SmartFlow",
+          "variant": "cover-product"
+        },
+        {
+          "id": "cover-tagline",
+          "type": "subtitle",
+          "content": "让每一个工作流都具备AI能力",
+          "variant": "cover-tagline"
+        },
+        {
+          "id": "cover-subtitle",
+          "type": "subtitle",
+          "content": "新一代AI驱动的智能工作流平台",
+          "variant": "cover-sub"
+        },
+        {
+          "id": "cover-company",
+          "type": "body-text",
+          "content": "[Company Name]",
+          "variant": "cover-meta"
+        },
+        {
+          "id": "cover-date",
+          "type": "body-text",
+          "content": "2026年7月",
+          "variant": "cover-meta"
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "01"
+      },
+      "qa": {
+        "maxTextDensity": "low",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-02",
+      "type": "agenda",
+      "layout": "agenda",
+      "title": "目录",
+      "subtitle": "产品方案核心内容",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "agenda-list",
+          "type": "bullet-list",
+          "variant": "agenda-numbered",
+          "items": [
+            "产品愿景与定位",
+            "市场痛点分析",
+            "竞品对比优势",
+            "三大核心能力",
+            "产品技术架构",
+            "用户使用流程",
+            "公测数据与标杆案例",
+            "合作模式与下一步"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "02"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-03",
+      "type": "single-message",
+      "layout": "single-message",
+      "title": "重新定义工作流：从流程自动化到智能协同",
+      "subtitle": "产品愿景",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "vision-statement",
+          "type": "quote",
+          "variant": "vision",
+          "content": "SmartFlow致力于让每个组织和团队都能轻松构建、运行和优化AI增强的工作流，将重复劳动交给AI，让人专注于创造价值。"
+        },
+        {
+          "id": "vision-pillars",
+          "type": "three-card",
+          "variant": "mini",
+          "items": [
+            {
+              "title": "人人可用",
+              "content": "低代码可视化编排，业务人员也能快速上手"
+            },
+            {
+              "title": "AI原生",
+              "content": "深度集成大模型能力，智能决策贯穿始终"
+            },
+            {
+              "title": "开放生态",
+              "content": "连接千款应用，灵活扩展适配各种场景"
+            }
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "03"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-04",
+      "type": "two-column",
+      "layout": "two-column",
+      "title": "传统工作流工具面临四大核心痛点，亟需AI原生解决方案",
+      "subtitle": "市场痛点分析",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "pain-points-title",
+          "type": "title",
+          "content": "传统方案的局限",
+          "variant": "column-title"
+        },
+        {
+          "id": "pain-points-list",
+          "type": "bullet-list",
+          "variant": "pain-points",
+          "items": [
+            "搭建门槛高：需要专业开发人员，业务人员无法自主配置",
+            "智能化不足：只能处理固定规则，无法应对非结构化数据",
+            "集成困难：系统孤岛严重，跨应用打通成本高周期长",
+            "维护成本高：业务变化需要重新开发，迭代响应慢"
+          ]
+        },
+        {
+          "id": "impact-title",
+          "type": "title",
+          "content": "带来的业务影响",
+          "variant": "column-title"
+        },
+        {
+          "id": "impact-list",
+          "type": "bullet-list",
+          "variant": "impact-list",
+          "items": [
+            "效率提升有限：自动化率普遍低于30%，大量工作仍需人工",
+            "创新速度受限：新业务流程从需求到上线平均需要2-3个月",
+            "数据价值浪费：80%的非结构化数据无法被流程有效利用",
+            "员工体验差：重复机械工作占用大量时间，创造力被抑制"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "04"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-05",
+      "type": "comparison",
+      "layout": "comparison",
+      "title": "SmartFlow在AI能力、易用性、开放性三个维度全面领先",
+      "subtitle": "竞品对比分析",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "comparison-table",
+          "type": "table",
+          "variant": "comparison",
+          "headers": ["对比维度", "传统RPA工具", "iPaaS平台", "SmartFlow"],
+          "rows": [
+            ["AI原生能力", "★☆☆☆☆ 无内置AI", "★★☆☆☆ 需外接", "★★★★★ 深度集成"],
+            ["非结构化处理", "★☆☆☆☆ 不支持", "★★☆☆☆ 有限支持", "★★★★★ 多模态理解"],
+            ["低代码门槛", "★★☆☆☆ 需专业培训", "★★★☆☆ 中等门槛", "★★★★★ 业务人员可用"],
+            ["应用集成数量", "★★★☆☆ 数百款", "★★★★☆ 上千款", "★★★★★ 2000+"],
+            ["智能决策能力", "★☆☆☆☆ 仅固定规则", "★★☆☆☆ 简单分支", "★★★★★ LLM驱动决策"],
+            ["上线周期", "周级", "天级", "小时级"]
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "05"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-06",
+      "type": "three-card",
+      "layout": "three-card",
+      "title": "三大核心能力重新定义智能工作流",
+      "subtitle": "核心能力",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "capability-1",
+          "type": "card",
+          "variant": "capability",
+          "title": "AI Copilot 智能编排",
+          "icon": "copilot",
+          "items": [
+            "自然语言描述生成工作流",
+            "智能推荐下一步节点",
+            "自动修复流程错误",
+            "流程优化建议生成"
+          ]
+        },
+        {
+          "id": "capability-2",
+          "type": "card",
+          "variant": "capability",
+          "title": "多模态智能处理",
+          "icon": "multimodal",
+          "items": [
+            "文档/图片/音频智能理解",
+            "非结构化数据自动提取",
+            "智能分类与标签",
+            "内容生成与摘要"
+          ]
+        },
+        {
+          "id": "capability-3",
+          "type": "card",
+          "variant": "capability",
+          "title": "自适应流程引擎",
+          "icon": "adaptive",
+          "items": [
+            "动态路径选择",
+            "异常智能处理",
+            "人机协同决策",
+            "流程持续学习优化"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "06"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-07",
+      "type": "architecture",
+      "layout": "architecture",
+      "title": "云原生微服务架构，兼顾灵活性、可扩展性与企业级安全",
+      "subtitle": "产品技术架构",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "arch-layer-1",
+          "type": "architecture-layer",
+          "variant": "top",
+          "title": "用户层",
+          "items": ["Web工作台", "移动App", "开放API", "IDE插件"]
+        },
+        {
+          "id": "arch-layer-2",
+          "type": "architecture-layer",
+          "variant": "middle-upper",
+          "title": "应用层",
+          "items": ["流程设计器", "运行监控", "AI Copilot", "数据分析", "应用市场"]
+        },
+        {
+          "id": "arch-layer-3",
+          "type": "architecture-layer",
+          "variant": "middle-lower",
+          "title": "引擎层",
+          "items": ["流程引擎", "AI引擎", "集成引擎", "规则引擎", "调度引擎"]
+        },
+        {
+          "id": "arch-layer-4",
+          "type": "architecture-layer",
+          "variant": "bottom",
+          "title": "基础设施层",
+          "items": ["多云部署", "容器编排", "数据存储", "安全合规", "可观测性"]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "07"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-08",
+      "type": "process-flow",
+      "layout": "process-flow",
+      "title": "四步快速构建智能工作流，从想法到上线仅需数小时",
+      "subtitle": "用户使用流程",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "step-1",
+          "type": "process-node",
+          "variant": "step",
+          "step": "01",
+          "title": "描述需求",
+          "items": [
+            "用自然语言描述流程目标",
+            "AI自动理解并生成初稿",
+            "从模板库选择相似流程"
+          ]
+        },
+        {
+          "id": "step-2",
+          "type": "process-node",
+          "variant": "step",
+          "step": "02",
+          "title": "可视化编排",
+          "items": [
+            "拖拽式画布配置节点",
+            "AI推荐连接器和组件",
+            "实时预览调试"
+          ]
+        },
+        {
+          "id": "step-3",
+          "type": "process-node",
+          "variant": "step",
+          "step": "03",
+          "title": "测试发布",
+          "items": [
+            "模拟数据测试运行",
+            "一键部署到生产",
+            "灰度发布控制风险"
+          ]
+        },
+        {
+          "id": "step-4",
+          "type": "process-node",
+          "variant": "step",
+          "step": "04",
+          "title": "监控优化",
+          "items": [
+            "实时运行监控看板",
+            "AI分析瓶颈并建议优化",
+            "数据回流持续改进"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "08"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-09",
+      "type": "kpi-dashboard",
+      "layout": "kpi-dashboard",
+      "title": "公测期间获得客户高度认可，关键指标表现优异",
+      "subtitle": "公测数据与标杆案例",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "kpi-1",
+          "type": "metric-card",
+          "variant": "primary",
+          "label": "公测企业客户",
+          "value": "200+",
+          "trend": "up",
+          "description": "覆盖金融、制造、零售、互联网等多个行业"
+        },
+        {
+          "id": "kpi-2",
+          "type": "metric-card",
+          "variant": "primary",
+          "label": "平均自动化率",
+          "value": "78%",
+          "trend": "up",
+          "description": "相比传统工具提升2倍以上"
+        },
+        {
+          "id": "kpi-3",
+          "type": "metric-card",
+          "variant": "secondary",
+          "label": "流程搭建效率",
+          "value": "10x",
+          "trend": "up",
+          "description": "从周级缩短到小时级上线"
+        },
+        {
+          "id": "kpi-4",
+          "type": "metric-card",
+          "variant": "secondary",
+          "label": "客户满意度(NPS)",
+          "value": "62",
+          "trend": "up",
+          "description": "远高于SaaS产品平均水平"
+        },
+        {
+          "id": "case-study",
+          "type": "callout",
+          "variant": "case-study",
+          "title": "标杆案例：某大型制造企业",
+          "content": "采购审批流程从平均3天缩短到4小时，财务处理人力成本降低65%，年节省成本超千万元。"
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "09"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-10",
+      "type": "summary",
+      "layout": "summary",
+      "title": "邀请您成为首批合作伙伴，共同开启智能工作流新时代",
+      "subtitle": "合作模式与下一步",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "cooperation-models",
+          "type": "three-card",
+          "variant": "cooperation",
+          "items": [
+            {
+              "title": "免费试用",
+              "content": "30天全功能免费试用，专属客户成功顾问支持"
+            },
+            {
+              "title": "企业版部署",
+              "content": "私有化部署、定制开发、SLA保障、专属服务"
+            },
+            {
+              "title": "生态合作",
+              "content": "连接器共建、解决方案合作、渠道代理"
+            }
+          ]
+        },
+        {
+          "id": "next-steps",
+          "type": "bullet-list",
+          "variant": "action-items",
+          "items": [
+            "现场演示：安排1小时深度产品演示和场景研讨",
+            "POC验证：选择1-2个核心流程做概念验证",
+            "商务洽谈：根据需求确定合作方案和定价",
+            "启动落地：组建联合团队，快速启动实施"
+          ]
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "10"
+      },
+      "qa": {
+        "maxTextDensity": "medium",
+        "allowRasterFallback": true
+      }
+    },
+    {
+      "id": "slide-11",
+      "type": "qa",
+      "layout": "qa",
+      "title": "Q&A",
+      "subtitle": "感谢聆听，期待与您合作",
+      "themeVariant": "light",
+      "components": [
+        {
+          "id": "qa-contact",
+          "type": "body-text",
+          "content": "产品咨询：[contact@company.example]",
+          "variant": "qa-contact"
+        }
+      ],
+      "footer": {
+        "brandText": "[Your Brand]",
+        "pageNumber": "11"
+      },
+      "qa": {
+        "maxTextDensity": "low",
+        "allowRasterFallback": true
+      }
+    }
+  ]
+}
