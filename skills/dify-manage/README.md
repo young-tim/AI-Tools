@@ -2,17 +2,6 @@
 
 Dify 工作流管理 CLI：DSL 拉取/部署、manifest 追踪、外链缓存、文件上传、run/chat。
 
-## 安装
-
-```bash
-# GitHub（替换 owner/repo）
-npx skills add <owner>/AI-Tools --skill dify-manage -g -y --agent cursor
-
-# 本地
-npx skills add ./skills/dify-manage -g -y --agent cursor
-# 或从仓库根：npx skills add ./skills/dify-manage ...
-```
-
 ## 业务项目初始化
 
 在业务仓库根目录：
