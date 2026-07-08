@@ -6,6 +6,8 @@
 **/*.pyc
 .venv/
 .decksmith/**
+.dify/**
+.pptsmith/**
 **/.decksmith/**
 **/node_modules/
 .pnpm-store/
