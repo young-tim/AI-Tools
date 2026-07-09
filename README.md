@@ -96,6 +96,48 @@ npx skills add young-tim/AI-Tools --skill dify-manage --agent '*' -g -y
   npx skills add ./skills/dify-manage -g -y --agent cursor
   ```
 
+## Skills 卸载
+
+### 让 AI 帮你卸载
+
+复制下面一句话发给 AI 编程助手即可：
+
+> 请帮我卸载从 [https://github.com/young-tim/AI-Tools](https://github.com/young-tim/AI-Tools) 安装的 skill（如 dify-manage）。
+
+### 命令行卸载
+
+```bash
+# 交互式：选择要卸载的 skill
+npx skills remove
+
+# 卸载指定 skill（全局，跳过确认）
+npx skills remove dify-manage -g -y
+
+# 卸载多个 skill
+npx skills remove decksmith ppt-smith dify-manage -g -y
+
+# 从指定 Agent 卸载
+npx skills remove dify-manage -g -y --agent cursor
+npx skills remove dify-manage -g -y --agent codex
+
+# 卸载全部 skill（所有 Agent）
+npx skills remove --all
+
+# 从指定 Agent 卸载全部 skill
+npx skills remove --skill '*' -g -y --agent cursor
+```
+
+> **注意**：`-g` 表示从用户目录（`~/.agents/skills/`）卸载；省略则从当前项目卸载。
+
+### 查看已安装的 skill
+
+```bash
+# 列出已安装的 skill
+npx skills ls
+# 或
+npx skills list
+```
+
 ## Skills 清单
 
 
