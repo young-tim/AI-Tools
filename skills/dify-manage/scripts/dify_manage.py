@@ -165,10 +165,67 @@ def resolve_dify_paths() -> None:
 
 
 def dsl_app_dir(app_id: str) -> Path:
+    """标准 UUID 命名的 DSL 目录（pull/init 创建目录时使用）。"""
     dify_dir = DIFY_DIR or discover_dify_dir()
     if not dify_dir:
         raise SystemExit("No .dify/ directory. Run: dify_manage.py init")
     return (dify_dir / "dsl" / app_id).resolve()
+
+
+def resolve_dsl_app_dir(app_id: str) -> Path:
+    """
+    解析 app 对应的 DSL 目录，兼容 UUID 目录和 slug/自定义目录。
+
+    查找顺序：
+    1. 标准 UUID 目录 .dify/dsl/{app_id}/
+    2. manifest 中 working.path 指向的目录
+    3. manifest 中 latest_remote.path 指向的目录
+    4. manifest 中 slug 对应的目录 .dify/dsl/{slug}/
+    5. 扫描 .dify/dsl/*/ 子目录，查找含 working.yml 且 YAML 中 app_id 匹配的目录
+    6. 都不存在时返回 UUID 目录（用于报错或创建）
+    """
+    dify_dir = DIFY_DIR or discover_dify_dir()
+    if not dify_dir:
+        raise SystemExit("No .dify/ directory. Run: dify_manage.py init")
+
+    uuid_dir = (dify_dir / "dsl" / app_id).resolve()
+    if uuid_dir.is_dir():
+        return uuid_dir
+
+    try:
+        manifest = load_manifest()
+        entry = (manifest.get("apps") or {}).get(app_id) or {}
+    except Exception:
+        entry = {}
+
+    for path_key in ("working", "latest_remote"):
+        rel = (entry.get(path_key) or {}).get("path", "")
+        if rel:
+            candidate = (dify_dir / rel).parent.resolve()
+            if candidate.is_dir():
+                return candidate
+
+    slug = entry.get("slug", "")
+    if slug:
+        slug_dir = (dify_dir / "dsl" / slug).resolve()
+        if slug_dir.is_dir():
+            return slug_dir
+
+    dsl_root = (dify_dir / "dsl").resolve()
+    if dsl_root.is_dir():
+        for sub in sorted(dsl_root.iterdir()):
+            if not sub.is_dir() or sub.name == app_id:
+                continue
+            working = sub / WORKING_DSL_NAME
+            if working.is_file():
+                try:
+                    text = working.read_text(encoding="utf-8", errors="ignore")
+                    if app_id in text[:5000]:
+                        return sub
+                except OSError:
+                    continue
+
+    return uuid_dir
 
 
 def remote_dsl_filename(ts: datetime | None = None) -> str:
@@ -177,7 +234,19 @@ def remote_dsl_filename(ts: datetime | None = None) -> str:
 
 
 def working_dsl_path(app_id: str) -> Path:
-    return dsl_app_dir(app_id) / WORKING_DSL_NAME
+    """working.yml 路径：优先从 manifest 读取，否则从解析后的 DSL 目录推导。"""
+    try:
+        entry = _manifest_app_entry(app_id)
+        rel = (entry.get("working") or {}).get("path", "")
+        if rel:
+            dify_dir = DIFY_DIR or discover_dify_dir()
+            if dify_dir:
+                candidate = (dify_dir / rel).resolve()
+                if candidate.is_file():
+                    return candidate
+    except Exception:
+        pass
+    return resolve_dsl_app_dir(app_id) / WORKING_DSL_NAME
 
 
 def manifest_path() -> Path:
@@ -684,7 +753,19 @@ def ensure_dsl_dir(app_id: str) -> Path:
 
 
 def find_latest_remote_dsl(app_id: str) -> Path | None:
-    d = dsl_app_dir(app_id)
+    """查找最新的 remote 快照，兼容 UUID 和 slug 目录。优先使用 manifest 记录。"""
+    try:
+        entry = _manifest_app_entry(app_id)
+        rel = (entry.get("latest_remote") or {}).get("path", "")
+        if rel:
+            dify_dir = DIFY_DIR or discover_dify_dir()
+            if dify_dir:
+                candidate = (dify_dir / rel).resolve()
+                if candidate.is_file():
+                    return candidate
+    except Exception:
+        pass
+    d = resolve_dsl_app_dir(app_id)
     if not d.is_dir():
         return None
     remotes = sorted(d.glob("*-remote.yml"), reverse=True)
@@ -1644,7 +1725,7 @@ def cmd_dsl_prune(args: argparse.Namespace) -> None:
     )
     assert app_id
     keep = max(1, args.keep)
-    remotes = sorted(dsl_app_dir(app_id).glob("*-remote.yml"), reverse=True)
+    remotes = sorted(resolve_dsl_app_dir(app_id).glob("*-remote.yml"), reverse=True)
     removed: list[str] = []
     for path in remotes[keep:]:
         path.unlink()
