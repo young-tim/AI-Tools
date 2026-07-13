@@ -2010,6 +2010,11 @@ def main() -> None:
         help="Overwrite working.yml from latest remote snapshot",
     )
 
+    # ⚠️ 维护 checklist：在 dsl_sub 下新增/修改子命令后，必须同步以下 3 处（双写兼容，否则 AI 端会再次出现"命令不存在"）：
+    #   1) 下方 dsl_sub.add_parser("<new>", ...)  ← 空格形式 `dsl <new>`（本处）
+    #   2) 「下划线一级别名」段落中 sub.add_parser("dsl_<new>", ...)  ← 别名形式 `dsl_<new>`
+    #   3) main() 末尾 handlers 字典：`"dsl_<new>": cmd_dsl_<new>,`
+    #   同时确保两处 add_argument 定义 1:1 对齐（参数名、类型、required、choices、default、help）
     dsl_parser = sub.add_parser("dsl", help="DSL status and diff")
     dsl_sub = dsl_parser.add_subparsers(dest="dsl_command", required=True)
     dsl_status = dsl_sub.add_parser("status", help="Compare local DSL hashes")
@@ -2035,6 +2040,8 @@ def main() -> None:
     add_app_target_args(dsl_prune)
     dsl_prune.add_argument("--keep", type=int, default=3, help="Number of remote snapshots to keep")
 
+    # ⚠️ 维护 checklist：在 cache_sub 下新增/修改子命令后，须同步 3 处（同上 dsl 段落说明）：
+    #   cache_sub.add_parser → sub.add_parser("cache_xxx") 别名注册 → handlers["cache_xxx"] 映射
     cache_parser = sub.add_parser("cache", help="Download cache for remote files")
     cache_sub = cache_parser.add_subparsers(dest="cache_command", required=True)
     cache_dl = cache_sub.add_parser(
@@ -2050,6 +2057,8 @@ def main() -> None:
     cache_clean = cache_sub.add_parser("clean", help="Remove cached downloads")
     cache_clean.add_argument("--md5", default="", help="Only remove files with this MD5 prefix")
 
+    # ⚠️ 维护 checklist：在 files_sub 下新增/修改子命令后，须同步 3 处（同上 dsl 段落说明）：
+    #   files_sub.add_parser → sub.add_parser("files_xxx") 别名注册 → handlers["files_xxx"] 映射
     files_parser = sub.add_parser("files", help="Service API file operations")
     files_sub = files_parser.add_subparsers(dest="files_command", required=True)
     files_up = files_sub.add_parser("upload", help="Upload file to Dify (local path or URL)")
@@ -2057,6 +2066,61 @@ def main() -> None:
     files_up.add_argument("--api-key", required=True)
     files_up.add_argument("--user", default="dify-manage-cli")
     files_up.add_argument(
+        "--force-cache",
+        action="store_true",
+        help="Re-download URL even if cached",
+    )
+
+    # ------------------------------------------------------------------
+    # 下划线一级别名命令（AI 友好：避免把二级子命令错当顶层调用导致"命令不存在"）
+    # ⚠️ 维护 checklist：本段落别名注册 与 上方 dsl_sub/cache_sub/files_sub 的二级子命令、
+    #   下方 main() 末尾 handlers 字典中的别名映射，三者必须 1:1 同步。
+    #   参数定义须与上方二级子命令处完全一致（包括参数顺序、类型、required、choices、default、help）
+    # 与上方 dsl / cache / files 二级子命令语义完全一致，参数定义 1:1 对齐，handler 复用同一函数
+    # 老用户继续用 `dsl status` 空格形式；AI 或自动化脚本可用 `dsl_status` 更稳健
+    # ------------------------------------------------------------------
+    # dsl 系列别名
+    dsl_status_p = sub.add_parser("dsl_status", help="(alias) DSL status: compare local DSL hashes")
+    add_app_target_args(dsl_status_p, required=False)
+    dsl_status_p.add_argument(
+        "--check-remote",
+        action="store_true",
+        help="Fetch online DSL and compare with local remote snapshot",
+    )
+    dsl_diff_p = sub.add_parser("dsl_diff", help="(alias) Diff working.yml vs remote or online")
+    add_app_target_args(dsl_diff_p)
+    dsl_diff_p.add_argument(
+        "--against",
+        choices=("remote", "online"),
+        default="remote",
+        help="Compare working against latest local remote snapshot or live online",
+    )
+    dsl_refresh_p = sub.add_parser("dsl_refresh", help="(alias) Update manifest working hash from disk")
+    add_app_target_args(dsl_refresh_p)
+    dsl_reset_p = sub.add_parser("dsl_reset", help="(alias) Reset working.yml from latest remote snapshot")
+    add_app_target_args(dsl_reset_p)
+    dsl_prune_p = sub.add_parser("dsl_prune", help="(alias) Remove old remote snapshots")
+    add_app_target_args(dsl_prune_p)
+    dsl_prune_p.add_argument("--keep", type=int, default=3, help="Number of remote snapshots to keep")
+    # cache 系列别名
+    cache_dl_p = sub.add_parser(
+        "cache_download", help="(alias) Download URL to .dify/cache/downloads/ (MD5 dedup)"
+    )
+    cache_dl_p.add_argument("url", help="Remote file URL")
+    cache_dl_p.add_argument(
+        "--force",
+        action="store_true",
+        help="Re-download even if cached",
+    )
+    sub.add_parser("cache_list", help="(alias) List cached downloads")
+    cache_clean_p = sub.add_parser("cache_clean", help="(alias) Remove cached downloads")
+    cache_clean_p.add_argument("--md5", default="", help="Only remove files with this MD5 prefix")
+    # files 系列别名
+    files_up_p = sub.add_parser("files_upload", help="(alias) Upload file to Dify (local path or URL)")
+    files_up_p.add_argument("file", help="Local path or http(s) URL")
+    files_up_p.add_argument("--api-key", required=True)
+    files_up_p.add_argument("--user", default="dify-manage-cli")
+    files_up_p.add_argument(
         "--force-cache",
         action="store_true",
         help="Re-download URL even if cached",
@@ -2167,6 +2231,7 @@ def main() -> None:
         cmd_files_upload(args)
         return
     handlers = {
+        # 一级顶层命令
         "init": cmd_init,
         "login": cmd_login,
         "refresh": cmd_refresh,
@@ -2180,6 +2245,19 @@ def main() -> None:
         "api-keys": cmd_api_keys,
         "run": cmd_run,
         "chat": cmd_chat,
+        # 下划线一级别名（与 dsl / cache / files 二级子命令语义一致，AI 友好）
+        # ⚠️ 维护 checklist：本块每一行对应：
+        #   上方 dsl_sub/cache_sub/files_sub 的二级子命令注册 + 「下划线一级别名」段落的顶层 add_parser 注册
+        #   3 处（子命令注册 + 别名注册 + 本映射）必须同步新增/删除，保持 1:1
+        "dsl_status": cmd_dsl_status,
+        "dsl_diff": cmd_dsl_diff,
+        "dsl_refresh": cmd_dsl_refresh,
+        "dsl_reset": cmd_dsl_reset,
+        "dsl_prune": cmd_dsl_prune,
+        "cache_download": cmd_cache_download,
+        "cache_list": cmd_cache_list,
+        "cache_clean": cmd_cache_clean,
+        "files_upload": cmd_files_upload,
     }
     handlers[args.command](args)
 

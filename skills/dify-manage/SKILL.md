@@ -14,10 +14,19 @@ description: >-
 **SKILL_ROOT** = 本 `SKILL.md` 所在目录（安装后通常在 `~/.cursor/skills/dify-manage/`）。
 
 ```bash
-# 基命令（后续子命令均接在此后）
-python3 "{SKILL_ROOT}/scripts/dify_manage.py" <子命令> [选项]
-# 或："{SKILL_ROOT}/scripts/dify" <子命令> [选项]
+# 基命令（后续命令均接在此后）
+python3 "{SKILL_ROOT}/scripts/dify_manage.py" <命令> [选项]
+# 或："{SKILL_ROOT}/scripts/dify" <命令> [选项]
 ```
+
+**两种等价调用形式（任选其一，全部命令都支持）：**
+
+| 形式 | 说明 | 示例 |
+|---|---|---|
+| **下划线 `父_子`（推荐，AI 友好无歧义）** | 所有 DSL / cache / files 命令都有独立的一级别名，不会误触发「命令不存在」 | `dsl_status`、`dsl_diff`、`cache_download`、`files_upload` |
+| 空格 `父 子`（人类习惯写法，完全兼容） | 原有两级结构继续保留，老脚本 / 终端肌肉记忆不受影响 | `dsl status`、`dsl diff`、`cache download`、`files upload` |
+
+除这 9 个别名命令外的其他命令（`init`、`login`、`pull`、`deploy`、`apps`、`run`、`chat` 等）天然只有一级，不存在形式差异。
 
 业务项目内可自建 `bin/dify` 包装，启动时 `cd` 到项目根以发现 `.env` / `.dify/`。
 
@@ -62,24 +71,24 @@ python3 "{SKILL_ROOT}/scripts/dify_manage.py" apps
 - `--app-id`、`--api-key` 每次传入
 - skill 内不固化业务 URL、token、应用名
 
-## DSL 工作流
+## DSL 工作流（推荐下划线写法，空格写法同样兼容）
 
 ```bash
 python3 "{SKILL_ROOT}/scripts/dify_manage.py" init
 python3 "{SKILL_ROOT}/scripts/dify_manage.py" apps
 python3 "{SKILL_ROOT}/scripts/dify_manage.py" pull --app-id <id>
 # 编辑 .dify/dsl/<id>/working.yml
-python3 "{SKILL_ROOT}/scripts/dify_manage.py" dsl diff --app-id <id>
+python3 "{SKILL_ROOT}/scripts/dify_manage.py" dsl_diff --app-id <id>     # 等价：dsl diff --app-id <id>
 python3 "{SKILL_ROOT}/scripts/dify_manage.py" deploy --app-id <id>
 ```
 
-维护：`dsl refresh`、`dsl reset`、`dsl prune --keep 3`、`pull --sync-working`。
+维护：`dsl_refresh`（更新 working 哈希）、`dsl_reset`（回滚 working 到最新 remote）、`dsl_prune --keep 3`（清理旧 remote 快照）、`pull --sync-working`。以上命令均有下划线和空格两种等价形式。
 
-## 文件工作流
+## 文件工作流（推荐下划线写法，空格写法同样兼容）
 
 ```bash
-cache download "https://example.com/a.jpg"
-files upload path-or-url --api-key app-xxx
+cache_download "https://example.com/a.jpg"                                    # 等价：cache download "..."
+files_upload path-or-url --api-key app-xxx                                    # 等价：files upload ...
 run --api-key app-xxx --file-url product_image=https://...
 run --api-key app-xxx --fixtures .dify/fixtures/<id>/smoke.json
 ```
@@ -88,17 +97,19 @@ run --api-key app-xxx --fixtures .dify/fixtures/<id>/smoke.json
 
 - 改前 `pull`；只 patch 目标节点
 - 禁止旧 YAML 整包覆盖
-- deploy 前 `dsl diff`；注意 `default` / `file_upload`
+- deploy 前先跑 `dsl_diff`；注意 `default` / `file_upload` 字段变更风险
 
 ## Agent 清单
+
+> **原则：AI 生成命令时优先使用下划线形式（`dsl_status`、`cache_download`、`files_upload` 等），避免触发「命令不存在」；人类用户和已有脚本可继续使用空格形式（`dsl status` 等），两者 100% 等价。**
 
 1. 首次使用：在业务项目根执行 `init`（见上文「首次使用」完整命令）
 2. 未指定 app → `apps`
 3. 改 DSL 前 `pull`；编辑 `working.yml`
-4. 部署前 `dsl diff`；异常用 `dsl status --check-remote`
-5. 外链：`cache download` → `files upload` 或 `run --file-url`
-6. 敏感操作须确认
-7. 无用户要求不 `login`
+4. 部署前 `dsl_diff --app-id <id>`；异常定位用 `dsl_status --check-remote --app-id <id>`
+5. 外链：`cache_download <url>` → `files_upload <path-or-url> --api-key app-xxx` 或 `run --file-url`
+6. 敏感操作（login / deploy / import / publish）**须用户确认**后再执行
+7. 无用户明确要求不主动执行 `login`
 
 ## 参考
 
