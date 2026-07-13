@@ -2844,6 +2844,10 @@ def dify_checklist_simulate(path: Path | str) -> dict[str, Any]:
             nid = n.get("id")
             if not isinstance(nid, str) or nid in note_ids:
                 continue
+            # loop / iteration 容器内的子节点（有 parentId）连接关系由容器管理，
+            # 顶层 edges 不包含其内部连接，跳过端口检查避免假阳性。
+            if n.get("parentId"):
+                continue
             data = n.get("data") if isinstance(n.get("data"), dict) else {}
             ntype = (data.get("type") if isinstance(data, dict) and isinstance(data.get("type"), str) else "") or ""
             if ntype in _DIFY_CHECKLIST_UI_HIDDEN_TYPES:
@@ -2854,14 +2858,12 @@ def dify_checklist_simulate(path: Path | str) -> dict[str, Any]:
                 req_in.add("target")
             if ntype not in _DIFY_CHECKLIST_NO_OUT_TYPES:
                 req_out.add("source")
-            # if-else / question-classifier 额外分支 ports
-            if ntype in {"if-else", "question-classifier"} and isinstance(data, dict):
-                cases = data.get("cases")
-                conds = data.get("conditions")
-                nbranch = max(2, len(cases) if isinstance(cases, list) else 0,
-                              len(conds) if isinstance(conds, list) else 0)
-                for i in range(nbranch):
-                    req_out.add(f"branch_{i}")
+            # if-else / question-classifier 分支端口修复：
+            # Dify Web 导出的 working.yml 中 if-else 节点 sourceHandle 是 'true'/'false'/case_id，
+            # 而非 'source'/'branch_0'/'branch_1'，导致固定 handle 名匹配全部 missing（假阳性）。
+            # 改为：只要节点有任意出边 handle，即视为 OUT 端口已连接（不强制具体 branch 数量）。
+            if ntype in {"if-else", "question-classifier"} and src_h.get(nid):
+                req_out.clear()
             miss_in = sorted(req_in - tgt_h.get(nid, set()))
             miss_out = sorted(req_out - src_h.get(nid, set()))
             reasons = [f"IN({','.join(miss_in)})"] if miss_in else []
@@ -2905,10 +2907,13 @@ def dify_checklist_simulate(path: Path | str) -> dict[str, Any]:
 
 
 def print_checklist_report(report: dict[str, Any], *,
-                           out: Any = sys.stderr) -> None:
+                           out: Any = sys.stderr,
+                           label: str = "") -> None:
     """将 dify_checklist_simulate 的结果以人类可读格式输出（与 Dify UI 清单一致）。"""
     print(file=out)
-    print("==== Dify 检查清单（模拟器，与平台显示 1:1）====", file=out)
+    # 若调用方传入 label（如 pre-deploy 阶段标识），追加到标题以区分场景
+    suffix = f"  [{label}]" if label else ""
+    print(f"==== Dify 检查清单（模拟器，与平台显示 1:1）===={suffix}", file=out)
     print(f"  file               : {report.get('file','?')}", file=out)
     ratio = float(report.get("handle_missing_ratio", 0.0) or 0.0)
     summary = report.get("summary", {}) or {}
