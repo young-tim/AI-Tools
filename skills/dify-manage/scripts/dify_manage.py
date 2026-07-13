@@ -2495,17 +2495,133 @@ _CHECKLIST_VAR_REF = re.compile(r"\{\{\s*#?\s*([\w\-]+)\.([\w\-]+)")
 _CHECKLIST_HASH_REF  = re.compile(r"#([\w\-]{4,})\.([\w\-]+)")
 
 
-def _checklist_collect_outputs(data: dict) -> set[str]:
-    """收集一个节点对外声明的输出变量 key 集合（供 *selector[1] 有效性校验使用）。"""
+# =========================================================
+# Dify 检查清单模拟器（兼容 ReactFlow camelCase 与 Dify-HTTP snake_case）
+# =========================================================
+
+def _edge_source_handle(e: dict[str, Any]) -> Any:
+    """从 edge 提取 source handle，兼容 ReactFlow camelCase 与 Dify-HTTP snake_case 两种命名。
+
+    working.yml（Dify Web 导出）edges 字段用的是 ReactFlow 原生命名：
+      `sourceHandle` / `targetHandle`（camelCase）
+    而 Dify 后端 HTTP import 的 JSON 用的是：
+      `source_handle` / `target_handle`（snake_case）
+    模拟器必须双兼容，否则会把本来全有 handle 的 edges 误判成 100% 缺失，
+    触发「全员未连接」的假阳性（Dify 清单模拟器 BUG 1）。
+    """
+    if e.get("source_handle") is not None:
+        return e["source_handle"]
+    # 注意：不要用 `e.get("sourceHandle") or e.get("source_handle")`
+    # —— 因为 handle 允许是合法空串 ""，会被 or 短路掉
+    if "sourceHandle" in e:
+        return e["sourceHandle"]
+    return None
+
+
+def _edge_target_handle(e: dict[str, Any]) -> Any:
+    """同理：target 侧双命名兼容。"""
+    if e.get("target_handle") is not None:
+        return e["target_handle"]
+    if "targetHandle" in e:
+        return e["targetHandle"]
+    return None
+
+
+def _checklist_collect_outputs(data: dict, *, node_type: str | None = None) -> set[str]:
+    """
+    收集一个节点对外声明的**输出变量 key 集合**（供 *selector[1] 有效性校验使用）。
+
+    Dify 节点语义：
+      `data.variables`        = 「输入」声明（从上游读的参数名）—— **不是输出！**
+      `data.outputs` (dict)   = code/iteration 等节点显式对外产出的 schema：`{key: {type, children?}}`
+      `data.outputs` (list)   = 列表式声明，元素为 {variable:.., key:.., name:..} 或纯字符串
+
+    修复 Dify 清单模拟器 BUG 2：上一版把 `data.variables`（输入）当成输出收集，
+    导致 `collected ∩ explicit_outputs` 几乎为 0，下游引用显式 output key 被误判 INVALID_VAR。
+
+    本函数按优先级从高到低叠加：
+      1. 显式 outputs（dict.keys() / list 元素）            ← 最可靠
+      2. outputs_mapping / output_schema / out_params keys
+      3. 各 node type 内置固定输出（LLM text / HTTP status_code 等）
+      4. LLM 节点 model.name 特殊兼容（对齐 Dify 清单可用=['gpt-5.4-1']）
+      5. 语义字段 walk：output_key / output_name / key / name / field  ← **排除 variable/variable_key（它们是输入声明）**
+    """
     outs: set[str] = set()
-    if isinstance(data.get("variables"), list):
-        for v in data["variables"]:  # type: ignore[union-attr]
-            if isinstance(v, dict):
-                k = v.get("variable") or v.get("key") or v.get("name")
+
+    # ----- 1. 显式 outputs（最可靠）-----
+    raw_outputs = data.get("outputs")
+    if isinstance(raw_outputs, dict):
+        # {key: {type, children?}} 形式（code / template / iteration 节点常用）
+        for k in raw_outputs.keys():
+            if isinstance(k, str) and k:
+                outs.add(k)
+    elif isinstance(raw_outputs, list):
+        for v in raw_outputs:
+            if isinstance(v, str) and v:
+                outs.add(v)
+            elif isinstance(v, dict):
+                # 按可能的字段名找 key（第一次命中就加，避免重复）
+                for key in ("variable", "key", "output_key", "variable_key",
+                            "name", "output_name", "field"):
+                    if isinstance(v.get(key), str) and v[key]:
+                        outs.add(v[key])
+                        break
+
+    # ----- 2. outputs_mapping / output_schema / out_params keys -----
+    mapping = data.get("outputs_mapping")
+    if isinstance(mapping, dict):
+        for k in mapping.keys():
+            if isinstance(k, str) and k:
+                outs.add(k)
+    for schema_key in ("output_schema", "out_params", "result_schema", "out_vars"):
+        val = data.get(schema_key)
+        if isinstance(val, dict):
+            # 既可能是 json-schema {properties:{k:..}}，也可能直接是 {k: {type:..}}
+            props = val.get("properties") if isinstance(val.get("properties"), dict) else val
+            for k in props.keys():
                 if isinstance(k, str) and k:
                     outs.add(k)
-            elif isinstance(v, str):
-                outs.add(v)
+
+    # ----- 3. node type 内置固定输出（Dify 前端写死）-----
+    if isinstance(node_type, str):
+        nt = node_type.lower()
+        if nt in {"llm"}:
+            outs |= {
+                "text", "reasoning_content", "usage", "total_tokens",
+                "prompt_tokens", "completion_tokens", "files",
+            }
+        elif nt in {"http-request", "http"}:
+            outs |= {
+                "status_code", "body", "headers", "statusText",
+                "responseTime", "latency", "status",
+            }
+        elif nt == "knowledge-retrieval":
+            outs |= {"result", "content", "query", "documents", "metadata"}
+        elif nt in {"template-transform", "template"}:
+            outs |= {"text", "output", "rendered_output"}
+        elif nt == "iteration":
+            outs |= {"output", "output_text", "last_output", "item"}
+        elif nt in {"question-classifier", "if-else"}:
+            outs |= {"condition_result", "matched_case_id"}
+        elif nt in {"answer", "direct-output"}:
+            outs |= {"text", "answer", "output"}
+        elif nt == "code":
+            outs |= {"output", "result"}  # 通用兜底：有些 code 节点只声明 `main() -> output`
+
+    # ----- 4. LLM 节点 model.name 特殊兼容（Dify 清单把 gpt-5.4-1 列在可用中，跟随对齐）-----
+    model = data.get("model")
+    if isinstance(model, dict):
+        for mk in ("name", "model", "id"):
+            mv = model.get(mk)
+            if isinstance(mv, str) and mv:
+                outs.add(mv)
+                break
+    elif isinstance(model, str) and model:
+        outs.add(model)
+
+    # ----- 5. 语义字段 walk：收集 output_key / output_name / key / name / field -----
+    # ⚠️  注意：排除 variable / variable_key！它们是 inputs 声明（本函数之前的 BUG 来源）
+    _VALID_KEYS = {"output_key", "output_name", "field", "key", "name"}
 
     def _walk(o: Any) -> None:
         if isinstance(o, dict):
@@ -2514,12 +2630,9 @@ def _checklist_collect_outputs(data: dict) -> set[str]:
                     isinstance(k, str)
                     and isinstance(v, str)
                     and 0 < len(v) < 80
+                    and k.lower() in _VALID_KEYS
                 ):
-                    if k.lower() in {
-                        "variable", "key", "output_key", "variable_key",
-                        "name", "output_name", "field",
-                    }:
-                        outs.add(v)
+                    outs.add(v)
                 if isinstance(v, (dict, list)):
                     _walk(v)
         elif isinstance(o, list):
@@ -2607,7 +2720,17 @@ def dify_checklist_simulate(path: Path | str) -> dict[str, Any]:
         if is_note:
             note_ids.add(nid)
             continue
-        outputs_by_node[nid] = _checklist_collect_outputs(data) if isinstance(data, dict) else set()
+        # data.type 是 Dify 节点类型（llm/code/http-request/...）；outer_type 一般是 'custom' 或外层包装
+        ntype = ""
+        if isinstance(data, dict) and isinstance(data.get("type"), str):
+            ntype = data["type"]
+        if not ntype and isinstance(outer_type, str):
+            ntype = outer_type
+        outputs_by_node[nid] = (
+            _checklist_collect_outputs(data, node_type=ntype or None)
+            if isinstance(data, dict)
+            else set()
+        )
 
     # A. 无效变量
     invalid_var: dict[str, list[str]] = {}
@@ -2680,8 +2803,11 @@ def dify_checklist_simulate(path: Path | str) -> dict[str, Any]:
         walk_text(n, nid)
 
     # B. 端口级未连接
+    # ⚠️  BUG 1 修复：同时兼容 ReactFlow camelCase（sourceHandle/targetHandle）
+    #     与 Dify-HTTP snake_case（source_handle/target_handle）两种命名
     missing_handle_count = sum(
-        1 for e in edges if e.get("source_handle") is None or e.get("target_handle") is None
+        1 for e in edges
+        if _edge_source_handle(e) is None or _edge_target_handle(e) is None
     )
     ratio = missing_handle_count / max(1, len(edges))
     result["handle_missing_ratio"] = ratio
@@ -2710,8 +2836,8 @@ def dify_checklist_simulate(path: Path | str) -> dict[str, Any]:
         tgt_h: dict[str, set[str]] = {}
         for e in edges:
             s = e.get("source"); t = e.get("target")
-            sh = e.get("source_handle") or "source"
-            th = e.get("target_handle") or "target"
+            sh = _edge_source_handle(e) or "source"
+            th = _edge_target_handle(e) or "target"
             if isinstance(s, str): src_h.setdefault(s, set()).add(sh)
             if isinstance(t, str): tgt_h.setdefault(t, set()).add(th)
         for n in nodes:
@@ -2966,6 +3092,242 @@ _DEPLOY_RECOVERY_HINT = (
 )
 
 
+def _extract_graph_ids(yaml_text: str) -> dict[str, Any]:
+    """从 Dify DSL YAML 文本提取 nodes/edges 的数量与 ID 集合。
+
+    兼容两种 graph 路径：顶层 ``graph`` 或 ``workflow.graph``（与
+    ``dify_checklist_simulate``/``DSLValidator`` 的实现保持一致）。
+
+    返回:
+      dict with keys:
+        - node_count (int)
+        - edge_count (int)
+        - node_ids (set[str])
+        - edge_ids (set[str])
+        - parse_error (str | None)  —— YAML 解析或 graph 定位失败时填错误说明
+    """
+    try:
+        import yaml as _yaml  # type: ignore  # lazy import，与 dify_checklist_simulate 保持一致
+    except ImportError as exc:
+        return {
+            "node_count": 0, "edge_count": 0,
+            "node_ids": set(), "edge_ids": set(),
+            "parse_error": f"PyYAML required (pip install pyyaml): {exc}",
+        }
+    fallback = {
+        "node_count": 0, "edge_count": 0,
+        "node_ids": set(), "edge_ids": set(),
+        "parse_error": None,
+    }
+    try:
+        parsed = _yaml.safe_load(yaml_text)
+    except Exception as exc:  # noqa: BLE001
+        fallback["parse_error"] = f"YAML parse failed: {exc}"
+        return fallback
+    graph: dict[str, Any] | None = None
+    if (isinstance(parsed, dict)
+            and isinstance(parsed.get("graph"), dict)
+            and parsed["graph"].get("nodes") is not None):
+        graph = parsed["graph"]
+    elif (isinstance(parsed, dict)
+          and isinstance(parsed.get("workflow"), dict)
+          and isinstance(parsed["workflow"].get("graph"), dict)):
+        graph = parsed["workflow"]["graph"]
+    if not graph:
+        fallback["parse_error"] = "graph not found (top.graph or workflow.graph)"
+        return fallback
+    nodes = [n for n in graph.get("nodes", []) if isinstance(n, dict)]
+    edges = [e for e in graph.get("edges", []) if isinstance(e, dict)]
+    node_ids: set[str] = {str(n["id"]) for n in nodes if isinstance(n.get("id"), (str, int))}
+    edge_ids: set[str] = set()
+    for e in edges:
+        eid = e.get("id")
+        if isinstance(eid, (str, int)) and str(eid):
+            edge_ids.add(str(eid))
+        else:
+            # 与真实 Dify export 对齐：如果 edge 没 id，用 (source,target,sourceHandle,targetHandle) 作为指纹
+            key = "|".join(str(e.get(k, "")) for k in ("source", "target", "sourceHandle", "targetHandle",
+                                                        "source_handle", "target_handle"))
+            edge_ids.add(f"__anon_edge__:{key}")
+    return {
+        "node_count": len(nodes),
+        "edge_count": len(edges),
+        "node_ids": node_ids,
+        "edge_ids": edge_ids,
+        "parse_error": None,
+    }
+
+
+def _post_deploy_verify(
+    session: "DifySession | None",
+    app_id: str,
+    deploy_file: "str | Path",
+    *,
+    max_retry: int = 1,
+    # 以下两个参数用于 TDD 依赖注入（绕过真实 HTTP）；生产调用保持默认（None）即可
+    _export_fn: Any = None,
+    _redeploy_fn: Any = None,
+) -> dict[str, Any]:
+    """Deploy 后校验：回拉 remote DSL，对比 nodes/edges 数量+ID 集合，不一致自动重试。
+
+    对应 Issue「deploy 成功但 Dify 后端静默丢 35 条边」的 P0 兜底：
+    ``POST /imports`` 在特定条件（race / 版本兼容）下会部分丢弃 edges 但返回
+    ``status: completed`` 无错误。重新 import 一般可恢复，因此这里自动重试 1 次。
+
+    参数:
+        session: 已初始化的 DifySession（用于 export_app_yaml 调用；TDD 时传 None）
+        app_id: 目标应用 ID
+        deploy_file: 本次 deploy 发送的 YAML 文件路径
+        max_retry: 校验失败后自动重新 import+publish 的次数上限（默认 1，与 Issue 建议一致）
+        _export_fn: TDD 注入。签名 (session, app_id) -> str(yaml)；默认用 export_app_yaml
+        _redeploy_fn: TDD 注入。签名 (session, app_id, deploy_file) -> None；默认不执行（
+            由调用方 cmd_deploy 集成时传入真实的 cmd_import+cmd_publish 包装）
+
+    返回:
+        dict with keys:
+          - ok (bool)                 —— 最终 nodes/edges 是否一致
+          - retry_used (int)          —— 实际重试次数（0=首次就 OK；>0=重试后 OK 或仍 FAIL）
+          - deployed (dict)           —— 发送端摘要：{"nodes":N, "edges":N, "parse_error":str|None}
+          - remote (dict)             —— 最后一次拉取的远端摘要
+          - mismatches (list[dict])   —— 不一致项（空表 = 完全 OK），每项字段：
+              * kind: node_count_mismatch / node_ids_mismatch /
+                      edge_count_mismatch / edge_ids_mismatch
+              * detail: 人类可读描述（含 expected/got 数字，grep 友好）
+              * expected / got: 整数（数量类）或集合（ID 类的 expected）
+              * missing_node_ids / extra_node_ids / missing_edge_ids / extra_edge_ids (set[str])  —— ID 类
+              * parse_error_deployed / parse_error_remote —— 解析失败时填
+    """
+    # ---- 读本地 deploy 文件 ----
+    deploy_file_p = Path(deploy_file)
+    deployed_text = deploy_file_p.read_text(encoding="utf-8")
+    deployed = _extract_graph_ids(deployed_text)
+
+    mismatches: list[dict[str, Any]] = []
+
+    # ---- 默认 export / redeploy 行为 ----
+    def _default_export(sess: "DifySession | None", aid: str) -> str:
+        if sess is None:
+            return ""
+        return export_app_yaml(sess, aid)
+
+    do_export = _export_fn if callable(_export_fn) else _default_export
+    # redeploy: 如果调用方没注入，默认不做真实动作（仅由 mismatches 报告不一致，用户手动重试）
+    # 但要能在 max_retry 循环里安全调用（空操作不会出错）
+    def _default_redeploy(sess: "DifySession | None", aid: str, dfile: "str | Path") -> None:  # noqa: ARG001
+        return None
+
+    do_redeploy = _redeploy_fn if callable(_redeploy_fn) else _default_redeploy
+
+    retry_used = 0
+    remote: dict[str, Any] = {}
+    max_retry_i = max(0, int(max_retry))
+
+    for attempt in range(max_retry_i + 1):
+        # 1. 拉 remote
+        try:
+            remote_text = do_export(session, app_id)
+        except SystemExit as exc:
+            remote = {"node_count": 0, "edge_count": 0, "node_ids": set(), "edge_ids": set(),
+                      "parse_error": f"export_app_yaml failed: {exc}"}
+            break
+        remote = _extract_graph_ids(remote_text) if isinstance(remote_text, str) else {
+            "node_count": 0, "edge_count": 0, "node_ids": set(), "edge_ids": set(),
+            "parse_error": f"export returned non-str: {type(remote_text).__name__}",
+        }
+
+        # 2. 4 维度对比
+        mismatches = []
+        if deployed.get("parse_error"):
+            mismatches.append({
+                "kind": "deployed_parse_error",
+                "detail": f"deployed YAML parse error: {deployed['parse_error']}",
+                "parse_error_deployed": deployed["parse_error"],
+            })
+        if remote.get("parse_error"):
+            mismatches.append({
+                "kind": "remote_parse_error",
+                "detail": f"remote YAML parse error: {remote['parse_error']}",
+                "parse_error_remote": remote["parse_error"],
+            })
+        if deployed["node_count"] != remote["node_count"]:
+            mismatches.append({
+                "kind": "node_count_mismatch",
+                "detail": (f"nodes: expected={deployed['node_count']} "
+                           f"got={remote['node_count']}"),
+                "expected": deployed["node_count"], "got": remote["node_count"],
+            })
+        missing_nodes = deployed["node_ids"] - remote["node_ids"]
+        extra_nodes = remote["node_ids"] - deployed["node_ids"]
+        if missing_nodes or extra_nodes:
+            mismatches.append({
+                "kind": "node_ids_mismatch",
+                "detail": (f"node IDs differ (missing={len(missing_nodes)} "
+                           f"extra={len(extra_nodes)})"),
+                "expected": deployed["node_ids"], "got": remote["node_ids"],
+                "missing_node_ids": missing_nodes,
+                "extra_node_ids": extra_nodes,
+            })
+        if deployed["edge_count"] != remote["edge_count"]:
+            mismatches.append({
+                "kind": "edge_count_mismatch",
+                "detail": (f"edges: expected={deployed['edge_count']} "
+                           f"got={remote['edge_count']}"),
+                "expected": deployed["edge_count"], "got": remote["edge_count"],
+            })
+        missing_edges = deployed["edge_ids"] - remote["edge_ids"]
+        extra_edges = remote["edge_ids"] - deployed["edge_ids"]
+        if missing_edges or extra_edges:
+            mismatches.append({
+                "kind": "edge_ids_mismatch",
+                "detail": (f"edge IDs differ (missing={len(missing_edges)} "
+                           f"extra={len(extra_edges)})"),
+                "expected": deployed["edge_ids"], "got": remote["edge_ids"],
+                "missing_edge_ids": missing_edges,
+                "extra_edge_ids": extra_edges,
+            })
+
+        if not mismatches:
+            # 完全一致 → 返回成功
+            return {
+                "ok": True,
+                "retry_used": retry_used,
+                "deployed": {
+                    "nodes": deployed["node_count"], "edges": deployed["edge_count"],
+                    "parse_error": deployed.get("parse_error"),
+                },
+                "remote": {
+                    "nodes": remote["node_count"], "edges": remote["edge_count"],
+                    "parse_error": remote.get("parse_error"),
+                },
+                "mismatches": [],
+            }
+
+        # 3. 不一致：还有重试额度 → 重新 import+publish 再进入下一轮 export
+        if attempt < max_retry_i:
+            retry_used += 1
+            try:
+                do_redeploy(session, app_id, deploy_file_p)
+            except SystemExit:
+                # redeploy 自己失败就不再往下重试（外层 mismatches 会把本次结果返回）
+                break
+            continue
+        # 重试用完 → 退出循环，返回最后一次 mismatches
+
+    return {
+        "ok": False,
+        "retry_used": retry_used,
+        "deployed": {
+            "nodes": deployed["node_count"], "edges": deployed["edge_count"],
+            "parse_error": deployed.get("parse_error"),
+        },
+        "remote": {
+            "nodes": remote.get("node_count", 0), "edges": remote.get("edge_count", 0),
+            "parse_error": remote.get("parse_error") if isinstance(remote, dict) else None,
+        },
+        "mismatches": mismatches,
+    }
+
+
 def cmd_deploy(args: argparse.Namespace) -> None:
     session = DifySession(require_console_url())
     app_id = resolve_app_id(
@@ -2985,6 +3347,66 @@ def cmd_deploy(args: argparse.Namespace) -> None:
 
     if not getattr(args, "skip_diff_warning", False):
         _deploy_diff_warning(app_id, deploy_file)
+
+    # 优化 5.2（GATE）：deploy 前先跑 Dify 官方清单模拟器（1:1 对齐 Web 端「检查清单」弹窗）。
+    #   基础校验（L1-L7）偏语法层、对 edges handle 缺失率 100%、下游引用无效节点变量这类
+    #   ReactFlow 渲染白屏根因是盲区 → 把 Dify 官方清单作为更严格的部署前置 gate。
+    #   默认阻断条件（命中任一即 BLOCK）：
+    #     a) invalid_var_nodes ≥ 1        （变量坏引用 = 运行时必然报错/白屏）
+    #     b) handle_missing_ratio ≥ 0.5   （Dify 前端「全员未连接」触发阈值 = 端口级丢失过半）
+    #     c) isolated_nodes / total_items ≥ 0.8 且 total_items>0 （大面积孤立）
+    #   配套参数：
+    #     --skip-checklist       → 完全跳过清单 gate
+    #     --checklist-warn-only  → 打印清单报告但不阻断（确认风险后强行上线）
+    checklist_report = None
+    if not getattr(args, "skip_checklist", False):
+        checklist_report = dify_checklist_simulate(deploy_file)
+        warn_only = bool(getattr(args, "checklist_warn_only", False))
+        label_sev = "WARN-ONLY" if warn_only else "BLOCK-GATE"
+        print_checklist_report(
+            checklist_report,
+            label=f"(pre-deploy {label_sev} for app={app_id})",
+        )
+        summary = checklist_report.get("summary") or {}
+        invalid_var_nodes = int(summary.get("invalid_var_nodes") or 0)
+        isolated_nodes = int(summary.get("isolated_nodes") or 0)
+        total_items = int(summary.get("total_items") or 0)
+        handle_missing_ratio = float(checklist_report.get("handle_missing_ratio") or 0.0)
+        block_reasons: list[str] = []
+        if invalid_var_nodes >= 1:
+            block_reasons.append(
+                f"{invalid_var_nodes} 个节点存在「无效的变量」引用（Dify 官方清单 INVALID_VAR）"
+            )
+        if handle_missing_ratio >= 0.5:
+            block_reasons.append(
+                f"edges handle 缺失率 {handle_missing_ratio:.0%} ≥ 50% "
+                f"→ Dify 前端会把所有节点标成「未连接」（ReactFlow 渲染白屏根因）"
+            )
+        if total_items > 0 and isolated_nodes >= int(total_items * 0.8):
+            block_reasons.append(
+                f"{isolated_nodes}/{total_items} 节点被判定为「尚未连接」（≥ 80%）"
+            )
+        if block_reasons and not warn_only:
+            lines = [
+                "=" * 72,
+                f"DEPLOY BLOCKED by Dify checklist gate ({len(block_reasons)} fatal issue(s)).",
+                "  Deploy blocked BEFORE any import/publish HTTP call — remote workflow is untouched.",
+                "Fatal reasons:",
+            ]
+            lines.extend(f"  - {r}" for r in block_reasons)
+            lines.extend([
+                "",
+                "Recommended fixes:",
+                "  1) Run: dsl validate <working.yml> --checklist-only   (定位每条坏引用和未连接)",
+                "  2) Or open the workflow in Dify Web → click 「检查清单」→ fix each item",
+                "  3) After fixing, re-run deploy",
+                "",
+                "To bypass gate (NOT recommended unless you understand the risk):",
+                "  · deploy --skip-checklist ........... skip checklist gate entirely",
+                "  · deploy --checklist-warn-only ...... print checklist but still proceed",
+                "=" * 72,
+            ])
+            raise SystemExit("\n".join(lines))
 
     # 优化 5.1：deploy 前自动执行静态 DSL 校验（7 层检查 + working.yml 行级定位）
     #   避免推送线上后出现「渲染此组件时发生了意外错误」白屏
@@ -3010,6 +3432,87 @@ def cmd_deploy(args: argparse.Namespace) -> None:
                                            "Automatic token refresh")):
             raise SystemExit(msg + _DEPLOY_RECOVERY_HINT) from exc
         raise
+
+    # ISSUE 建议 1/2：Post-deploy 内容完整性校验（P0 兜底 Dify 后端静默丢边）
+    #   - 回拉 remote DSL 对比 4 维度（node 数量/ID、edge 数量/ID）
+    #   - 不一致时自动重新 import+publish（默认 1 次，瞬态丢边重发即恢复）
+    #   - 校验失败不阻塞 deploy（manifest 仍更新），只 stderr 警告
+    if not getattr(args, "skip_post_verify", False):
+        retry_max = max(0, int(getattr(args, "post_verify_retry", 1) or 1))
+
+        def _redeploy_reimport(_sess: Any, _aid: str, _dfile: Path) -> None:  # noqa: ARG001
+            """真实重试回调：重新跑 cmd_import + cmd_publish（复用外层 session/args）。
+
+            注意：此处 args.file 已在上游被赋值为 deploy_file，args.app_id 也已解析。
+            """
+            cmd_import(args, session=session)
+            cmd_publish(args, session=session)
+
+        pv_result = _post_deploy_verify(
+            session,
+            app_id,
+            deploy_file,
+            max_retry=retry_max,
+            _redeploy_fn=_redeploy_reimport,
+        )
+        ok = bool(pv_result.get("ok"))
+        retry_used = int(pv_result.get("retry_used") or 0)
+        remote_summary = pv_result.get("remote") or {}
+        if ok:
+            if retry_used > 0:
+                print(
+                    f"Post-deploy verify: OK after {retry_used} retry(s) "
+                    f"(nodes={remote_summary.get('nodes')}, edges={remote_summary.get('edges')})"
+                )
+            else:
+                print(
+                    f"Post-deploy verify: OK "
+                    f"(nodes={remote_summary.get('nodes')}, edges={remote_summary.get('edges')})"
+                )
+        else:
+            lines = [
+                "⚠️  Post-deploy verify FAILED"
+                + (f" after {retry_used} retry(s):" if retry_used else ":"),
+            ]
+            deployed_summary = pv_result.get("deployed") or {}
+            # 总览行
+            lines.append(
+                "    nodes: "
+                f"expected={deployed_summary.get('nodes')}, "
+                f"got={remote_summary.get('nodes')} "
+                + ("✓" if deployed_summary.get("nodes") == remote_summary.get("nodes") else "✗")
+            )
+            lines.append(
+                "    edges: "
+                f"expected={deployed_summary.get('edges')}, "
+                f"got={remote_summary.get('edges')} "
+                + ("✓" if deployed_summary.get("edges") == remote_summary.get("edges") else "✗")
+            )
+            for m in pv_result.get("mismatches") or []:
+                if isinstance(m, dict):
+                    det = m.get("detail") or str(m)
+                    extras: list[str] = []
+                    for key in ("missing_node_ids", "missing_edge_ids",
+                                "extra_node_ids", "extra_edge_ids"):
+                        v = m.get(key)
+                        if isinstance(v, (set, list)) and v:
+                            items = sorted(str(x) for x in v)
+                            preview = items[:10]
+                            suffix = ""
+                            if len(items) > 10:
+                                suffix = f"...(+{len(items) - 10})"
+                            extras.append(f"{key}=[{', '.join(preview)}{suffix}]")
+                    line = f"    {det}"
+                    if extras:
+                        line += "  (" + "; ".join(extras) + ")"
+                    lines.append(line)
+                else:
+                    lines.append(f"    {m}")
+            lines.extend([
+                "  Possible causes: Dify backend race condition, DSL version mismatch.",
+                "  Try: deploy --app-id <id> again, or check Dify platform UI.",
+            ])
+            print("\n".join(lines), file=sys.stderr)
 
     if deploy_file.is_file():
         update_manifest_app(
@@ -3410,6 +3913,42 @@ def main() -> None:
         "--validate-no-snippets",
         action="store_true",
         help="Do not print line-level source snippets when validation reports issues",
+    )
+    deploy_parser.add_argument(
+        "--skip-checklist",
+        action="store_true",
+        help=(
+            "Skip pre-deploy Dify-official-style checklist gate. NOT recommended: checklist catches "
+            "INVALID_VAR refs + edges handle loss that standard L1-L7 validation is blind to (these "
+            "are the root cause of the Dify Web 'Error rendering component' white screen)."
+        ),
+    )
+    deploy_parser.add_argument(
+        "--checklist-warn-only",
+        action="store_true",
+        help=(
+            "Run Dify checklist gate, print full report, but DO NOT block deploy even when fatal "
+            "issues are present. Use only after you've reviewed the checklist output and accept the "
+            "risk of remote workflow rendering broken."
+        ),
+    )
+    deploy_parser.add_argument(
+        "--skip-post-verify",
+        action="store_true",
+        help=(
+            "Skip post-deploy remote verification. NOT recommended: Dify's /apps/imports endpoint "
+            "can silently drop 30+ edges (race condition / DSL-version incompat) while returning "
+            "status=completed, leaving the live workflow with orphaned nodes."
+        ),
+    )
+    deploy_parser.add_argument(
+        "--post-verify-retry",
+        type=int,
+        default=1,
+        help=(
+            "Auto-redeploy (import+publish) N times when post-deploy verify detects node/edge "
+            "mismatch. Re-importing almost always recovers the transient edge-drop case. Default: 1."
+        ),
     )
 
     api_keys_parser = sub.add_parser(

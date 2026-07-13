@@ -145,7 +145,7 @@ npx skills list
 | ------------------------------------ | ------------------------- |
 | [decksmith](./skills/decksmith/)     | AI 演示稿编译器：直接输出 PPTX-native、高设计感、内容有效、可编辑的客户交付型 PPT（Node.js/PptxGenJS 版本） |
 | [ppt-smith](./skills/ppt-smith/)     | AI 演示稿编译器：基于 officecli，直接输出 PPTX-native、高设计感、内容有效、可编辑的客户交付型 PPT（officecli 版本） |
-| [dify-manage](./skills/dify-manage/) | Dify DSL 拉取/编辑/部署；文件缓存与上传 |
+| [dify-manage](./skills/dify-manage/) | Dify DSL 拉取/编辑/**上线前静态校验 + Dify 官方检查清单 1:1 模拟器**/部署（deploy 自动带前置 gates + **publish 后回拉远端内容完整性校验、默认自动重试，兜底后端静默丢边**）；文件缓存与上传 |
 
 
 ## 仓库结构

@@ -52,12 +52,13 @@ description: >-
 
 **Frontmatter 要求：**
 
-| 字段 | 必填 | 说明 |
-|------|------|------|
-| `name` | 是 | Skill 唯一标识，小写字母+连字符，与目录名一致 |
-| `description` | 是 | 必须同时包含英文描述和中文触发词，格式：`<英文功能说明>. 当用户需要<中文场景>时触发。` |
+| 字段            | 必填 | 说明                                              |
+| ------------- | -- | ----------------------------------------------- |
+| `name`        | 是  | Skill 唯一标识，小写字母+连字符，与目录名一致                      |
+| `description` | 是  | 必须同时包含英文描述和中文触发词，格式：`<英文功能说明>. 当用户需要<中文场景>时触发。` |
 
 **description 编写规则：**
+
 - 开头用英文说明 Skill 功能
 - 必须包含 `Use when` 或 `Invoke when` 列出典型触发场景
 - 结尾必须包含中文触发说明
@@ -66,6 +67,7 @@ description: >-
 ### 品牌中立性
 
 本仓库是开源项目，所有 Skill **禁止**包含：
+
 - 特定公司/品牌名称（使用 `[Your Brand]`、`[Company Name]` 等占位符）
 - 内部域名、私有 API 地址
 - 个人身份信息
@@ -83,6 +85,7 @@ Schema 定义位于 `{SKILL_ROOT}/schema/presentation.schema.json`
 ### JSON 文件规范
 
 所有 JSON 配置文件（schema、themes、templates、components、examples）：
+
 - 必须通过 JSON 语法校验（可使用 `python3 -c "import json; json.load(open('file.json'))"` 验证）
 - 字符串中禁止使用未转义的双引号
 - 中文描述使用中文标点，但注意 JSON 字符串内的引号需转义或避免使用
@@ -125,7 +128,8 @@ node scripts/quick_validate.mjs skills/*
 
 1. 修改 `skills/<skill-name>/` 下的源文件
 2. 运行 `node scripts/quick_validate.mjs skills/<skill-name>`；如涉及 JSON 文件，确保 JSON 资源通过语法校验
-3. 如新增/删除 Skill 或修改了说明，更新 README.md 清单
+3. 如有更新脚本、命令，建议检查 `skills/<skill-name>/` 下的 `README.md` 、`SKILL.md` 、`reference.md` 等文件是否需要修改说明，确保与 Skill 功能一致。
+4. 如新增/删除 Skill 或修改了说明，更新 README.md 清单
 
 ## Skills 清单维护
 
@@ -148,3 +152,4 @@ README.md 中的 Skills 清单表格必须与 `skills/` 目录保持同步：
 - ❌ 不要提交包含语法错误的 JSON 文件
 - ❌ 不要在 Skill 中引入未在说明中提及的系统级依赖（如需依赖，需在 SKILL.md 中明确说明安装方式）
 - ❌ 不需要手动同步到 `.agents/skills/`（符号链接自动生效）
+

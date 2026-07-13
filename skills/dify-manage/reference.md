@@ -14,7 +14,8 @@
 | `pull --app-id <id>` | 拉远程 DSL；`--sync-working` 覆盖 working |
 | `export -o <path>` | 导出；省略 `-o` 等同 pull |
 | `dsl_status` / `dsl_diff` / `dsl_refresh` / `dsl_reset` / `dsl_prune` | DSL 状态与维护（等价空格形式：`dsl status / diff / refresh / reset / prune`） |
-| `deploy [--app-id] [file]` | import + publish；默认 working.yml |
+| `dsl_validate [file]` | **上线前静态校验 + Dify 官方检查清单 1:1 模拟器**（等价空格形式：`dsl validate`）。`--checklist` 叠加清单、`--checklist-only` 只跑清单；`--validate-fail-on-warnings` / `--validate-no-snippets` 控制严格度与输出；`deploy` 默认自动调用 |
+| `deploy [--app-id] [file]` | import + publish；默认 working.yml。**前置 gates**（静态校验 + Dify 官方检查清单）：阻断条件=invalid_var≥1 / handle 缺失率≥50% / 孤立节点≥80%；`--skip-validate` / `--skip-checklist` 跳过、`--checklist-warn-only` 放宽告警。**后置内容完整性校验（P0 兜底静默丢边）**：publish 后自动回拉 remote 对比 nodes/edges 数量+ID 集合，不一致自动重新 import+publish 1 次（`--post-verify-retry N` 调次数，`--skip-post-verify` 跳过）；重试仍失败打印详细丢失 ID 列表（stderr 告警，不阻塞） |
 | `cache_download` / `cache_list` / `cache_clean` | 外链缓存（MD5 去重，等价空格形式：`cache download / list / clean`） |
 | `files_upload <path-or-url> --api-key` | 上传得 `upload_file_id`（等价空格形式：`files upload ...`） |
 | `run --api-key` / `chat --api-key` | 运行；`--input` `--file` `--file-url` `--fixtures` |

@@ -79,7 +79,13 @@ python3 "{SKILL_ROOT}/scripts/dify_manage.py" apps
 python3 "{SKILL_ROOT}/scripts/dify_manage.py" pull --app-id <id>
 # 编辑 .dify/dsl/<id>/working.yml
 python3 "{SKILL_ROOT}/scripts/dify_manage.py" dsl_diff --app-id <id>     # 等价：dsl diff --app-id <id>
+python3 "{SKILL_ROOT}/scripts/dify_manage.py" dsl_validate --app-id <id> --checklist   # 上线前静态校验 + Dify 官方检查清单 1:1 模拟器；等价 dsl validate --checklist
 python3 "{SKILL_ROOT}/scripts/dify_manage.py" deploy --app-id <id>
+# deploy 默认自动触发前置 gate（静态校验 + 清单）：invalid_var≥1 / handle 缺失率≥50% / 孤立节点≥80% 会阻断；
+# 确认风险后可加 --skip-validate / --skip-checklist 绕过，或 --checklist-warn-only 放宽阻断为告警
+# deploy **publish 成功后还会自动回拉 remote 做内容完整性校验（P0兜底 Dify 后端静默丢 35 条边的 bug）**：
+#   默认最多自动重新 import+publish 1 次（瞬态丢边一般重试即恢复）；
+#   可用 --post-verify-retry N 调重试次数，或 --skip-post-verify 完全跳过（不推荐）
 ```
 
 维护：`dsl_refresh`（更新 working 哈希）、`dsl_reset`（回滚 working 到最新 remote）、`dsl_prune --keep 3`（清理旧 remote 快照）、`pull --sync-working`。以上命令均有下划线和空格两种等价形式。
@@ -106,7 +112,7 @@ run --api-key app-xxx --fixtures .dify/fixtures/<id>/smoke.json
 1. 首次使用：在业务项目根执行 `init`（见上文「首次使用」完整命令）
 2. 未指定 app → `apps`
 3. 改 DSL 前 `pull`；编辑 `working.yml`
-4. 部署前 `dsl_diff --app-id <id>`；异常定位用 `dsl_status --check-remote --app-id <id>`
+4. 部署前先跑 `dsl_validate --checklist --app-id <id>`（**已作为 deploy 前置 gate 默认自动触发**），确认无 invalid_var 节点、handle 缺失率 < 50%、孤立节点 < 80%，再跑 `dsl_diff --app-id <id>` 对比差异；**deploy publish 成功后还会回拉 remote 做 nodes/edges 4 维度完整性校验，默认自动重试 1 次兜底 Dify 后端静默丢边，校验失败不阻塞仅 stderr 告警**；异常定位用 `dsl_status --check-remote --app-id <id>`。用户明确确认风险后，可加 `--skip-validate` / `--skip-checklist` / `--skip-post-verify` 绕过 gates，或 `--checklist-warn-only` 放宽阻断为告警、`--post-verify-retry N` 改重试次数
 5. 外链：`cache_download <url>` → `files_upload <path-or-url> --api-key app-xxx` 或 `run --file-url`
 6. 敏感操作（login / deploy / import / publish）**须用户确认**后再执行
 7. 无用户明确要求不主动执行 `login`
