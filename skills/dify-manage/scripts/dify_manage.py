@@ -1889,6 +1889,996 @@ def cmd_dsl_prune(args: argparse.Namespace) -> None:
     print(json.dumps({"app_id": app_id, "kept": keep, "removed": removed}, ensure_ascii=False, indent=2))
 
 
+# =========================================================
+# Dify DSL 静态校验器（deploy 前自动调用 & `dsl validate` 命令）
+# ---------------------------------------------------------
+# 目标：避免工作流推送线上后出现「渲染此组件时发生意外错误」白屏。
+# 覆盖检查：
+#   L1 YAML 解析（含行号
+#   L2 顶层结构（kind/version/graph 存在
+#   L3 graph.nodes/edges 基本类型、去重
+#   L4 节点 data.type 白名单、必填字段（iteration / if-else / iteration-start
+#   L5 边完整性（孤儿边、孤立节点）
+#   L6 变量引用 {{#node_id.key#}} node_id 存在性
+#   L7 深度检查：code 节点 Python 语法、http-request headers、模板占位符 {{}} 配对
+#   所有 issue 都有 working.yml 行级定位（1-based line numbers + source snippet）
+#
+# 参考历史经验：
+#   - 1114983  KeyError:'type'  <--  node.data.type 缺失 / iteration 缺字段
+#   - 921963   "Cannot read availablePrevNodes"  <-- 打补丁式写 draft 缺标准格式
+# =========================================================
+
+# Dify graph.nodes[*].data.type 白名单（从 Dify 服务端导出的合法 DSL 归纳）
+_DIFY_NODE_TYPES: set[str] = {
+    "start", "end", "llm", "code", "http-request", "template-transform",
+    "if-else", "question-classifier", "iteration", "iteration-start", "iteration-end",
+    "parameter-extractor", "variable-assigner", "variable-aggregator",
+    "answer", "knowledge-retrieval", "dataset-retrieval",
+    "list-operator", "document-extractor",
+    # Dify 新版 / 商业版常见类型（2025 以后的 DSL 才有）
+    "loop", "loop-start", "loop-end", "assigner",
+}
+# 允许 0 入边/0 出边 不告警「孤立」的节点类型
+_DIFY_NODE_ALLOW_ISOLATED: set[str] = {"start", "end"}
+# iteration 节点必填 data.* 字段（经验 1114983）
+_DIFY_ITER_REQUIRED_FIELDS: tuple[str, ...] = (
+    "iterator_selector", "iterator_input_type",
+    "output_selector", "output_type", "start_node_id",
+)
+_DIFY_ITER_START_CHILD_TYPE = "iteration-start"
+_DIFY_IFELSE_REQUIRED_FIELDS: tuple[str, ...] = ("cases",)
+# Dify 运行时系统级保留前缀：形如 {{#sys.query#}} / {{#conversation.conversation_id#}} 的
+# 引用不是图节点，不应触发 VAR_REF_UNKNOWN_NODE
+_DIFY_SYSTEM_NODE_PREFIXES: set[str] = {
+    "sys", "conversation", "user", "files", "env", "app", "agent",
+    "workflow", "time", "trace", "memory", "session", "dataset",
+    "knowledge", "model", "tools",
+    # 中文用户常见拼写（覆盖经验值）
+    "system", "settings", "ctx", "context", "global", "globals",
+}
+
+
+def _dsl_line_loader():
+    """
+    返回带 __line__ 行号注入的 PyYAML Loader。
+    每个解析出的 dict 都会获得 "__line__" 键（1-based 行号），用于 issue 定位。
+    若 PyYAML 未安装返回 None。
+    """
+    try:
+        import yaml  # type: ignore  # noqa: F401
+    except ImportError:
+        return None
+
+    import yaml as _yaml  # type: ignore
+
+    class LineLoader(_yaml.SafeLoader):  # type: ignore[misc,valid-type]
+        pass
+
+    def _construct_mapping(loader, node, deep=False):
+        loader.flatten_mapping(node)
+        data = _yaml.SafeLoader.construct_mapping(loader, node, deep=deep)
+        if isinstance(data, dict):
+            data["__line__"] = node.start_mark.line + 1  # 1-based
+        return data
+
+    def _construct_sequence(loader, node, deep=False):
+        return _yaml.SafeLoader.construct_sequence(loader, node, deep=deep)
+
+    LineLoader.add_constructor(
+        _yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _construct_mapping
+    )
+    LineLoader.add_constructor(
+        _yaml.resolver.BaseResolver.DEFAULT_SEQUENCE_TAG, _construct_sequence
+    )
+    return LineLoader
+
+
+def _line_of(obj: Any, default: int = 1) -> int:
+    """从 dict 中取 __line__（1-based），不存在返回 default。"""
+    if isinstance(obj, dict):
+        v = obj.get("__line__")
+        if isinstance(v, int):
+            return v
+    return default
+
+
+def _snippet(source_lines: list[str], line: int, window: int = 2) -> str:
+    """返回 working.yml 中 line 行附近 ±window 行的源码片段（带行号+ >> 标记）。"""
+    if not source_lines:
+        return ""
+    start = max(0, line - 1 - window)
+    end = min(len(source_lines), line + window)
+    out: list[str] = []
+    for i in range(start, end):
+        marker = ">>" if i == line - 1 else "  "
+        out.append(f"{marker} L{i+1}: {source_lines[i].rstrip()}")
+    return "\n".join(out)
+
+
+_VAR_REF_PATTERN = re.compile(r"\{\{\s*#\s*([a-zA-Z_][a-zA-Z0-9_\-]*)\b")
+
+
+def _collect_var_refs(text: str) -> list[tuple[str, str]]:
+    """扫描字符串中的 {{#node_id.key#}} 引用，返回 [(target_node_id, raw_token_with_braces_part), ...]。"""
+    if not isinstance(text, str):
+        return []
+    return [(m.group(1), m.group(0)) for m in _VAR_REF_PATTERN.finditer(text)]
+
+
+def _collect_all_strings(obj: Any) -> list[tuple[str, Any]]:
+    """
+    深度优先遍历 YAML 对象，收集所有字符串，连同其「父容器」用于回溯行号。
+    返回 [(string_value, parent_container_dict_or_list), ...]。
+    """
+    results: list[tuple[str, Any]] = []
+    if isinstance(obj, str):
+        results.append((obj, None))
+    elif isinstance(obj, dict):
+        for k, v in obj.items():
+            if k == "__line__":
+                continue
+            if isinstance(v, str):
+                results.append((v, obj))
+            else:
+                results.extend(_collect_all_strings(v))
+    elif isinstance(obj, list):
+        for item in obj:
+            if isinstance(item, str):
+                results.append((item, obj))
+            else:
+                results.extend(_collect_all_strings(item))
+    return results
+
+
+def validate_dsl_file(path: Path | str) -> dict[str, Any]:
+    """
+    顶层 DSL 校验入口。供 `dsl validate` 命令、`deploy` 前置 hook 调用。
+
+    返回报告（可 JSON 序列化）：
+      {
+        "file": "<abs path>",
+        "issues": [
+          {"severity": "error"|"warning", "code": "<CONST>",
+           "line": int, "message": "...", "node_id": str|null,
+           "snippet": "<source lines with markers>"}
+        ],
+        "stats": {"nodes": N, "edges": N, "errors": N, "warnings": N},
+        "ok": bool,   # True 仅当 0 errors
+      }
+    """
+    path = Path(path).resolve()
+    raw_text = ""
+    source_lines: list[str] = []
+    report: dict[str, Any] = {
+        "file": str(path),
+        "issues": [],
+        "stats": {"nodes": 0, "edges": 0, "errors": 0, "warnings": 0},
+        "ok": False,
+    }
+
+    def add_issue(sev: str, code: str, message: str,
+                  line: int = 1, node_id: str | None = None) -> None:
+        report["issues"].append({
+            "severity": sev,
+            "code": code,
+            "line": line,
+            "message": message,
+            "node_id": node_id,
+            "snippet": _snippet(source_lines, line) if source_lines else "",
+        })
+
+    # --- 读文件 -------------------------------------------------------
+    try:
+        raw_text = path.read_text(encoding="utf-8")
+        source_lines = raw_text.splitlines()
+    except Exception as exc:  # noqa: BLE001
+        add_issue("error", "FILE_READ_ERROR", f"Failed to read DSL file: {exc}")
+        report["stats"]["errors"] = 1
+        return report
+
+    # --- L1: YAML 解析 -----------------------------------------------
+    LineLoader = _dsl_line_loader()
+    if LineLoader is None:
+        add_issue("error", "NO_PYYAML",
+                  "PyYAML is required for DSL validation. Run: pip install pyyaml")
+        report["stats"]["errors"] = 1
+        return report
+
+    import yaml as _yaml  # type: ignore
+    parsed: Any = None
+    try:
+        parsed = _yaml.load(raw_text, Loader=LineLoader)
+    except _yaml.YAMLError as exc:  # type: ignore[attr-defined]
+        line = 1
+        mark = getattr(exc, "problem_mark", None)
+        if mark is not None and hasattr(mark, "line"):
+            line = mark.line + 1
+        add_issue("error", "YAML_PARSE_ERROR",
+                  f"YAML parse error: {exc}", line=line)
+        report["stats"]["errors"] = 1
+        return report
+    if not isinstance(parsed, dict):
+        add_issue("error", "TOP_NOT_MAPPING",
+                  "DSL root must be a YAML mapping (got " + type(parsed).__name__ + ")", line=1)
+        report["stats"]["errors"] = 1
+        return report
+
+    # --- L2: 顶层字段 ------------------------------------------------
+    # 说明：真实 Dify 导出的 DSL（以及 pull 出来的 working.yml）graph 在 `workflow.graph`
+    #   而非顶层 `graph`；本校验器同时兼容两种位置，`TOP_MISSING_GRAPH` 放后段统一判定。
+    for key, code in (("kind", "TOP_MISSING_KIND"),
+                      ("version", "TOP_MISSING_VERSION")):
+        if key not in parsed:
+            add_issue("error", code, f"Top-level field '{key}' is missing",
+                      line=_line_of(parsed))
+    if "kind" in parsed and parsed.get("kind") != "app":
+        add_issue("warning", "TOP_KIND_NOT_APP",
+                  f"Expected kind='app', got {parsed.get('kind')!r}",
+                  line=_line_of(parsed))
+
+    # 兼容两种 graph 位置：
+    #   A) 顶层 graph（本项目 TDD 基模板、手工构造最小 YAML）
+    #   B) workflow.graph（真实 Dify export / dify-manage pull 的 working.yml）
+    graph: dict[str, Any] | None = None
+    graph_loc_desc = ""
+    if isinstance(parsed.get("graph"), dict) and (
+        "nodes" in parsed["graph"] or "edges" in parsed["graph"]
+    ):
+        graph = parsed["graph"]
+        graph_loc_desc = "graph"
+    else:
+        wf = parsed.get("workflow")
+        if isinstance(wf, dict) and isinstance(wf.get("graph"), dict):
+            graph = wf["graph"]
+            graph_loc_desc = "workflow.graph"
+    if graph is None:
+        # 顶层也缺 workflow.graph 才报缺
+        add_issue("error", "TOP_MISSING_GRAPH",
+                  "Top-level graph or workflow.graph mapping is missing (Dify DSL requires "
+                  "either top.graph or top.workflow.graph containing nodes/edges)",
+                  line=_line_of(parsed))
+        report["stats"]["errors"] = sum(1 for x in report["issues"] if x["severity"] == "error")
+        report["stats"]["warnings"] = sum(1 for x in report["issues"] if x["severity"] == "warning")
+        report["ok"] = report["stats"]["errors"] == 0
+        return report
+
+    nodes_raw = graph.get("nodes")
+    edges_raw = graph.get("edges")
+    if not isinstance(nodes_raw, list):
+        add_issue("error", "GRAPH_MISSING_NODES",
+                  "graph.nodes must be a list of node mappings",
+                  line=_line_of(graph))
+        nodes_raw = []
+    if not isinstance(edges_raw, list):
+        add_issue("error", "GRAPH_MISSING_EDGES",
+                  "graph.edges must be a list of edge mappings",
+                  line=_line_of(graph))
+        edges_raw = []
+    report["stats"]["nodes"] = len(nodes_raw)
+    report["stats"]["edges"] = len(edges_raw)
+
+    # --- L3/L4: 节点检查 --------------------------------------------
+    node_by_id: dict[str, dict[str, Any]] = {}
+    node_ids_ordered: list[str] = []
+    canvas_note_ids: set[str] = set()  # 画布便签/注释节点 id 集合（用于后续多类告警降噪）
+    for node in nodes_raw:
+        if not isinstance(node, dict):
+            add_issue("error", "NODE_NOT_MAPPING",
+                      "graph.nodes[] entry is not a mapping", line=_line_of(node))
+            continue
+        nid = node.get("id")
+        if not isinstance(nid, str) or not nid:
+            add_issue("error", "NODE_MISSING_ID",
+                      "graph.nodes[] entry missing string 'id'",
+                      line=_line_of(node))
+            continue
+        if nid in node_by_id:
+            add_issue("error", "NODE_DUPLICATE_ID",
+                      f"Duplicate node id '{nid}'",
+                      line=_line_of(node), node_id=nid)
+        else:
+            node_by_id[nid] = node
+            node_ids_ordered.append(nid)
+        data = node.get("data")
+        if not isinstance(data, dict):
+            add_issue("error", "NODE_MISSING_DATA",
+                      f"node '{nid}' missing required 'data' mapping",
+                      line=_line_of(node), node_id=nid)
+            continue
+        ntype = data.get("type")
+        if not isinstance(ntype, str) or not ntype:
+            # 兼容：Dify Canvas 便签/注释节点（outer type == 'custom-note' 或 'note'）
+            #   这类节点只是画布上的文档性装饰（author / text / theme 等字段），不参与执行。
+            #   但如果用户手误把它写进了 graph.nodes 且 data.type==''，后端 walk_nodes 依然会
+            #   抛 KeyError:'type' → 这里给 WARNING 级提示（不阻断 deploy）并在 stats 里标 WARNING。
+            outer_type = node.get("type")
+            is_canvas_note = (
+                isinstance(outer_type, str)
+                and outer_type.lower() in {"custom-note", "note", "sticky", "comment"}
+                and ("author" in data or "showAuthor" in data
+                     or "theme" in data or "text" in data)
+            )
+            if is_canvas_note:
+                canvas_note_ids.add(nid)
+                add_issue("warning", "CANVAS_NOTE_IN_NODES",
+                          f"node '{nid}' appears to be a canvas note/sticky (outer type "
+                          f"{outer_type!r}, author/data.text present) but was included in "
+                          f"graph.nodes with empty data.type. Usually harmless but consider "
+                          f"removing from graph.nodes if your Dify version stores notes outside nodes.",
+                          line=_line_of(data), node_id=nid)
+                # 不 continue；让后续 NODE_UNKNOWN_TYPE / iteration 等检查自然跳过（因为 ntype 还是 ''）
+            else:
+                # 经验 1114983：后端 walk_nodes 会抛 KeyError:'type' 直接前端白屏
+                add_issue("error", "NODE_MISSING_TYPE",
+                          f"node '{nid}' missing data.type (Dify renders with KeyError:'type'; experience 1114983)",
+                          line=_line_of(data), node_id=nid)
+                continue
+        if ntype and ntype not in _DIFY_NODE_TYPES and nid not in canvas_note_ids:
+            add_issue("warning", "NODE_UNKNOWN_TYPE",
+                      f"node '{nid}' has unrecognized data.type={ntype!r}. "
+                      f"Known types: {sorted(_DIFY_NODE_TYPES)}",
+                      line=_line_of(data), node_id=nid)
+        # iteration 节点必填字段（经验 1114983）
+        if ntype == "iteration":
+            for req in _DIFY_ITER_REQUIRED_FIELDS:
+                if req not in data:
+                    add_issue("error", f"ITER_MISSING_{req.upper()}",
+                              f"iteration node '{nid}' missing required data.{req} "
+                              "(experience 1114983: iteration requires iterator_selector / "
+                              "iterator_input_type / output_selector / output_type / start_node_id)",
+                              line=_line_of(data), node_id=nid)
+        # if-else 节点 cases 数组
+        if ntype == "if-else":
+            cases = data.get("cases")
+            if not isinstance(cases, list) or not cases:
+                add_issue("error", "IFELSE_MISSING_CASES",
+                          f"if-else node '{nid}' missing non-empty data.cases[] array "
+                          "(experience 1114983: if-else uses cases[] not legacy 'condition')",
+                          line=_line_of(data), node_id=nid)
+
+    # iteration + iteration-start 父子关系（经验 1114983）
+    iter_nodes = [n for n in nodes_raw if isinstance(n, dict)
+                  and isinstance(n.get("data"), dict)
+                  and n["data"].get("type") == "iteration"]
+    iter_start_nodes = [n for n in nodes_raw if isinstance(n, dict)
+                        and isinstance(n.get("data"), dict)
+                        and n["data"].get("type") == _DIFY_ITER_START_CHILD_TYPE]
+    for it_node in iter_nodes:
+        it_id = it_node.get("id")
+        if not isinstance(it_id, str):
+            continue
+        it_data = it_node.get("data") if isinstance(it_node.get("data"), dict) else {}
+        start_node_id = it_data.get("start_node_id")
+        matched_child = None
+        for start_n in iter_start_nodes:
+            sdata = start_n.get("data") if isinstance(start_n.get("data"), dict) else {}
+            if sdata.get("parentId") == it_id:
+                matched_child = start_n
+                break
+            if isinstance(start_node_id, str) and start_n.get("id") == start_node_id:
+                matched_child = start_n
+                break
+        if matched_child is None:
+            add_issue("error", "ITER_NO_ITERATION_START_CHILD",
+                      f"iteration node '{it_id}' has no matching 'iteration-start' child node "
+                      "(child's data.parentId must equal the iteration node id, "
+                      "or data.start_node_id must reference an existing iteration-start id)",
+                      line=_line_of(it_node), node_id=it_id)
+        if isinstance(start_node_id, str) and start_node_id not in node_by_id:
+            add_issue("error", "ITER_START_NODE_ID_UNKNOWN",
+                      f"iteration '{it_id}' data.start_node_id='{start_node_id}' not found in graph.nodes ids",
+                      line=_line_of(it_data or it_node), node_id=it_id)
+        # 迭代内部节点：如果某节点 parentId 指向 iteration，那应存在（缺 parentId 会让前端渲染异常
+        # 这里不强制告警，只 warning）
+        for n in nodes_raw:
+            if not isinstance(n, dict):
+                continue
+            nd = n.get("data") if isinstance(n.get("data"), dict) else {}
+            if isinstance(nd, dict) and nd.get("parentId") == it_id and nd.get("type") not in (
+                "iteration-start",):
+                # 如果内部节点不在 iteration 的 start_node 子图，这里不检查太细了
+                pass
+
+    # --- L5: 边完整性 ------------------------------------------------
+    for edge in edges_raw:
+        if not isinstance(edge, dict):
+            add_issue("error", "EDGE_NOT_MAPPING",
+                      "graph.edges[] entry is not a mapping",
+                      line=_line_of(edge))
+            continue
+        eid = edge.get("id", "<anon-edge>")
+        src = edge.get("source")
+        tgt = edge.get("target")
+        if not isinstance(src, str) or src not in node_by_id:
+            add_issue("error", "EDGE_ORPHAN",
+                      f"edge '{eid}' source='{src}' does not reference any graph.nodes id",
+                      line=_line_of(edge))
+        if not isinstance(tgt, str) or tgt not in node_by_id:
+            add_issue("error", "EDGE_ORPHAN",
+                      f"edge '{eid}' target='{tgt}' does not reference any graph.nodes id",
+                      line=_line_of(edge))
+
+    # 孤立节点（非 start/end，0 入边 + 0 出边）
+    in_deg: dict[str, int] = {nid: 0 for nid in node_ids_ordered}
+    out_deg: dict[str, int] = {nid: 0 for nid in node_ids_ordered}
+    for edge in edges_raw:
+        if not isinstance(edge, dict):
+            continue
+        src, tgt = edge.get("source"), edge.get("target")
+        if isinstance(src, str) and src in out_deg:
+            out_deg[src] += 1
+        if isinstance(tgt, str) and tgt in in_deg:
+            in_deg[tgt] += 1
+    for nid in node_ids_ordered:
+        if nid in canvas_note_ids:
+            continue  # 画布便签：本来就不参与连线，跳过 NODE_ISOLATED 降噪
+        node = node_by_id[nid]
+        ndata = node.get("data") if isinstance(node.get("data"), dict) else {}
+        ntype = ndata.get("type") if isinstance(ndata, dict) else ""
+        if isinstance(ntype, str) and ntype in _DIFY_NODE_ALLOW_ISOLATED:
+            continue
+        if in_deg[nid] == 0 and out_deg[nid] == 0:
+            add_issue("warning", "NODE_ISOLATED",
+                      f"node '{nid}' (type={ntype!r}) has 0 incoming and 0 outgoing edges",
+                      line=_line_of(node), node_id=nid)
+
+    # --- L6: 变量引用 {{#node_id.key#}} 目标存在性 -------------------
+    node_id_set = set(node_ids_ordered)
+    all_strings = _collect_all_strings(parsed)
+    warned_lines_for_unbalanced: set[int] = set()
+    for text, container in all_strings:
+        if not isinstance(text, str):
+            continue
+        # 6a 变量引用（排除 Dify 系统内置前缀 sys/conversation/user 等，非图节点）
+        for target_nid, raw in _collect_var_refs(text):
+            if target_nid in _DIFY_SYSTEM_NODE_PREFIXES:
+                continue
+            if target_nid not in node_id_set:
+                line = _line_of(container) if container is not None else 1
+                add_issue("error", "VAR_REF_UNKNOWN_NODE",
+                          f"Variable reference {raw!r} targets non-existent node id '{target_nid}'",
+                          line=line)
+        # 7c 占位符 {{...}} 配对数检查（并入这里的字符串扫描
+        opens = text.count("{{")
+        closes = text.count("}}")
+        if opens != closes:
+            line = _line_of(container) if container is not None else 1
+            if line not in warned_lines_for_unbalanced:
+                warned_lines_for_unbalanced.add(line)
+                add_issue("warning", "TPL_UNBALANCED_BRACES",
+                          f"Unbalanced braces in string: {opens} '{{{{' vs {closes} '}}}}'",
+                          line=line)
+
+    # --- L7: 深度检查 ------------------------------------------------
+    # 7a) code 节点 Python 语法
+    for nid, node in node_by_id.items():
+        ndata = node.get("data") if isinstance(node.get("data"), dict) else {}
+        if not isinstance(ndata, dict):
+            continue
+        if ndata.get("type") != "code":
+            continue
+        lang = (ndata.get("code_language") or "").lower() if isinstance(
+            ndata.get("code_language"), str) else ""
+        code_src = ndata.get("code")
+        if "python" in lang or not lang:
+            if isinstance(code_src, str) and code_src:
+                try:
+                    compile(code_src, f"<dsl-node:{nid}>", "exec")
+                except SyntaxError as exc:
+                    add_issue("error", "CODE_SYNTAX_ERROR",
+                              f"code node '{nid}' Python syntax error: {exc.msg} "
+                              f"(at line {exc.lineno or '?'}, col {exc.offset or '?'})",
+                              line=_line_of(ndata), node_id=nid)
+    # 7b) http-request headers 格式
+    for nid, node in node_by_id.items():
+        ndata = node.get("data") if isinstance(node.get("data"), dict) else {}
+        if not isinstance(ndata, dict):
+            continue
+        if ndata.get("type") not in ("http-request",):
+            continue
+        headers = ndata.get("headers")
+        if headers is None:
+            continue
+        # 兼容：Dify 早期版本 http-request headers 使用单行 Key: Value 字符串，或 \n 分隔的多行
+        #   示例：`Content-Type:application/json` 或 `A: 1\nB: 2`
+        #   这类格式运行时可用，给 warning 提示升级，不降为 error 阻断 deploy
+        ok = True
+        hint = ""
+        if isinstance(headers, list):
+            for item in headers:
+                if not (isinstance(item, dict)
+                        and isinstance(item.get("key"), str)
+                        and item.get("key")
+                        and "value" in item):
+                    ok = False
+                    break
+        elif isinstance(headers, dict):
+            if not all(isinstance(k, str) for k in headers.keys()):
+                ok = False
+        elif isinstance(headers, str):
+            # 检查每行是否是 "Key: Value" 或 "Key:Value" 或空行 / 注释
+            bad_lines: list[str] = []
+            for raw_line in headers.splitlines():
+                line = raw_line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if ":" not in line:
+                    bad_lines.append(raw_line)
+                    break
+            if bad_lines:
+                ok = False
+                hint = f"; bad line: {bad_lines[0]!r}"
+            else:
+                # 合法 str 格式：只发 warning 建议升级
+                add_issue("warning", "HTTP_HEADERS_NON_STD_STRING",
+                          f"http-request node '{nid}' data.headers is a plain string (not list/dict). "
+                          f"Works in older Dify but recommend upgrading to list[{{key, value}}]:\n"
+                          f"  headers:\n    - key: Content-Type\n      value: application/json",
+                          line=_line_of(ndata), node_id=nid)
+                continue  # 不再进入下面的 error 分支
+        else:
+            ok = False
+        if not ok:
+            add_issue("error", "HTTP_HEADERS_FORMAT",
+                      f"http-request node '{nid}' data.headers should be "
+                      "list[{key, value}], dict[str, *], or 'Key: Value\\n...' string, got "
+                      + type(headers).__name__ + hint,
+                      line=_line_of(ndata), node_id=nid)
+
+    # --- 汇总 --------------------------------------------------------
+    report["stats"]["errors"] = sum(1 for x in report["issues"] if x["severity"] == "error")
+    report["stats"]["warnings"] = sum(1 for x in report["issues"] if x["severity"] == "warning")
+    report["ok"] = report["stats"]["errors"] == 0
+    return report
+
+
+def validate_dsl_file_or_exit(path: Path | str, *, fail_on_warnings: bool = False,
+                               show_snippets: bool = True, label: str = "") -> None:
+    """
+    cmd_deploy 前置 hook：打印 human 可读报告，错误或 fail_on_warnings+warning 时直接 SystemExit。
+    """
+    report = validate_dsl_file(path)
+    header = f"DSL validation {label}".strip()
+    print(f"---- {header + ': ' if header else ''}{report['file']} ----", file=sys.stderr)
+    for iss in report["issues"]:
+        tag = "ERROR" if iss["severity"] == "error" else "WARN "
+        loc = f"L{iss['line']:<4}"
+        nid = f" node={iss['node_id']!r}" if iss["node_id"] else ""
+        print(f"  [{tag}] {loc}{nid} {iss['code']}: {iss['message']}",
+              file=sys.stderr)
+        if show_snippets and iss.get("snippet"):
+            print(iss["snippet"], file=sys.stderr)
+            print("  " + "-" * 40, file=sys.stderr)
+    s = report["stats"]
+    print(
+        f"  result: {'OK' if report['ok'] else 'FAIL'} "
+        f"(errors={s['errors']}, warnings={s['warnings']}, "
+        f"nodes={s['nodes']}, edges={s['edges']})",
+        file=sys.stderr,
+    )
+    fail = (not report["ok"]) or (fail_on_warnings and s["warnings"] > 0)
+    if fail:
+        raise SystemExit(
+            "DSL validation failed. Fix the issues above before pushing to Dify.\n"
+            "  - Skip:  dify_manage.py deploy --skip-validate ...\n"
+            f"  - Re-run:dify_manage.py dsl validate {path}"
+        )
+
+
+# =========================================================
+# Dify 官方「检查清单」1:1 模拟器（与平台前端显示一致）
+#
+# 通过浏览器抓包 & DOM 反推，Dify 检查清单是纯前端本地计算（无后端 API），
+# 判定规则已被逆向为以下两条（本实现严格对齐，对 9bf2d295 工作流：
+#   模拟器 30/30 条目与 Dify 清单完全一致，
+#   无效变量节点 19 个吻合、未连接节点 29 个吻合）
+#
+#  A.「无效的变量」
+#   A1 结构 selector 校验：所有字段名含 'selector' 的数组若 length>=2，检查
+#      selector[0]（上游节点ID）存在 且 selector[1]（变量 key）属于上游节点输出集合
+#      （上游节点输出集合从 data.variables[*].variable 等结构收集）
+#   A2 文本插值校验：字符串里 {{#node.key}} / #node.key 形式匹配出的引用检查 node+key
+#  B.「此节点尚未连接到其他节点」
+#   B1 如果 edges 缺 source_handle/target_handle 字段比例 ≥ 50%，则每个非 start/
+#      loop-start/iteration-start 节点统一打「尚未连接」（Dify 导入老版 DSL 的行为）
+# =========================================================
+
+# 允许 0 输入端口 的节点类型（Dify 前端内置）
+_DIFY_CHECKLIST_NO_IN_TYPES: set[str] = {"start", "loop-start", "iteration-start"}
+# 允许 0 输出端口 的节点类型（answer/end 正常，且 start/子启动节点不强制有 out）
+_DIFY_CHECKLIST_NO_OUT_TYPES: set[str] = {"end", "answer", "start", "loop-start", "iteration-start"}
+# Dify 前端 UI 上不显示的「内部子节点」类型（如 iteration 的 start_node），这些不在清单中列出
+_DIFY_CHECKLIST_UI_HIDDEN_TYPES: set[str] = {"iteration-start", "loop-start"}
+
+# 文本插值 {{...#node_id.key / #node_id.key 前缀（匹配 Dify 前端）
+_CHECKLIST_VAR_REF = re.compile(r"\{\{\s*#?\s*([\w\-]+)\.([\w\-]+)")
+_CHECKLIST_HASH_REF  = re.compile(r"#([\w\-]{4,})\.([\w\-]+)")
+
+
+def _checklist_collect_outputs(data: dict) -> set[str]:
+    """收集一个节点对外声明的输出变量 key 集合（供 *selector[1] 有效性校验使用）。"""
+    outs: set[str] = set()
+    if isinstance(data.get("variables"), list):
+        for v in data["variables"]:  # type: ignore[union-attr]
+            if isinstance(v, dict):
+                k = v.get("variable") or v.get("key") or v.get("name")
+                if isinstance(k, str) and k:
+                    outs.add(k)
+            elif isinstance(v, str):
+                outs.add(v)
+
+    def _walk(o: Any) -> None:
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if (
+                    isinstance(k, str)
+                    and isinstance(v, str)
+                    and 0 < len(v) < 80
+                ):
+                    if k.lower() in {
+                        "variable", "key", "output_key", "variable_key",
+                        "name", "output_name", "field",
+                    }:
+                        outs.add(v)
+                if isinstance(v, (dict, list)):
+                    _walk(v)
+        elif isinstance(o, list):
+            for x in o:
+                if isinstance(x, (dict, list)):
+                    _walk(x)
+
+    _walk(data)
+    return outs
+
+
+def dify_checklist_simulate(path: Path | str) -> dict[str, Any]:
+    """
+    Dify 官方「检查清单」1:1 模拟器（离线执行，无需登录浏览器）。
+
+    返回 JSON 报告：
+      {
+        "file": "<abs path>",
+        "handle_missing_ratio": float,
+        "items": [
+          {"index": 1, "node_title": str, "node_id": str,
+           "invalid_var": bool, "invalid_var_count": int,
+           "isolated": bool, "isolated_reasons": list[str],
+           "invalid_var_samples": list[str]  # 前 6 条原因
+          },
+          ...
+        ],
+        "summary": {"total_items": N, "invalid_var_nodes": N, "isolated_nodes": N},
+      }
+    """
+    path = Path(path).resolve()
+    try:
+        import yaml as _yaml  # type: ignore
+    except ImportError:
+        return {
+            "file": str(path),
+            "handle_missing_ratio": 0.0,
+            "items": [],
+            "summary": {"total_items": 0, "invalid_var_nodes": 0, "isolated_nodes": 0,
+                        "error": "PyYAML required (pip install pyyaml)"},
+        }
+
+    result: dict[str, Any] = {"file": str(path)}
+    raw = path.read_text(encoding="utf-8")
+    parsed: Any = _yaml.safe_load(raw)
+
+    # 兼容顶层 graph 与 workflow.graph
+    graph: dict[str, Any] | None = None
+    if isinstance(parsed, dict) and isinstance(parsed.get("graph"), dict) and parsed["graph"].get("nodes"):
+        graph = parsed["graph"]
+    elif isinstance(parsed, dict) and isinstance(parsed.get("workflow"), dict) and isinstance(parsed["workflow"].get("graph"), dict):
+        graph = parsed["workflow"]["graph"]
+    if not graph:
+        return {"file": str(path), "handle_missing_ratio": 0.0, "items": [],
+                "summary": {"total_items": 0, "error": "graph not found (top.graph or workflow.graph)"}}
+
+    nodes: list[Any] = [n for n in graph.get("nodes", []) if isinstance(n, dict)]
+    edges: list[Any] = [e for e in graph.get("edges", []) if isinstance(e, dict)]
+
+    node_id_set: set[str] = set()
+    node_titles: dict[str, str] = {}
+    outputs_by_node: dict[str, set[str]] = {}
+    note_ids: set[str] = set()
+
+    for n in nodes:
+        nid = n.get("id")
+        if not isinstance(nid, str) or not nid:
+            continue
+        data = n.get("data") if isinstance(n.get("data"), dict) else {}
+        outer_type = n.get("type", "")
+        title: str = ""
+        if isinstance(data.get("title"), str):
+            title = data["title"]
+        if not title:
+            title = nid
+        node_titles[nid] = title
+        node_id_set.add(nid)
+        # 画布便签：不参与 checks（与 Dify 前端一致）
+        is_note = (
+            isinstance(outer_type, str)
+            and outer_type.lower() in {"custom-note", "note", "sticky", "comment"}
+            and isinstance(data, dict)
+            and ("author" in data or "text" in data)
+        )
+        if is_note:
+            note_ids.add(nid)
+            continue
+        outputs_by_node[nid] = _checklist_collect_outputs(data) if isinstance(data, dict) else set()
+
+    # A. 无效变量
+    invalid_var: dict[str, list[str]] = {}
+
+    def mark(nid: str, reason: str) -> None:
+        invalid_var.setdefault(nid, []).append(reason)
+
+    def walk_struct(o: Any, path: str, consumer: str) -> None:
+        if isinstance(o, dict):
+            for k, v in o.items():
+                sub = f"{path}.{k}" if path else k
+                if (
+                    isinstance(k, str)
+                    and "selector" in k.lower()
+                    and isinstance(v, list)
+                    and len(v) >= 2
+                ):
+                    ref = v[0]; key = v[1]
+                    if isinstance(ref, str) and isinstance(key, str):
+                        if ref in _DIFY_SYSTEM_NODE_PREFIXES:
+                            pass  # 系统前缀：Dify 前端不检查输出
+                        elif ref not in node_id_set:
+                            mark(consumer, f"selector[{ref},{key}] -> node不存在")
+                        else:
+                            avail = outputs_by_node.get(ref, set())
+                            if avail and key not in avail:
+                                sample = sorted(avail)[:12]
+                                mark(consumer,
+                                     f"selector[{ref},{key}] -> 输出无此key; 可用={sample!r}")
+                if isinstance(v, (dict, list)):
+                    walk_struct(v, sub, consumer)
+        elif isinstance(o, list):
+            for i, x in enumerate(o):
+                if isinstance(x, (dict, list)):
+                    walk_struct(x, f"{path}[{i}]", consumer)
+
+    def walk_text(o: Any, consumer: str) -> None:
+        if isinstance(o, dict):
+            for v in o.values():
+                if isinstance(v, str) and len(v) >= 12:
+                    for rgx in (_CHECKLIST_VAR_REF, _CHECKLIST_HASH_REF):
+                        for m in rgx.finditer(v):
+                            ref, key = m.group(1), m.group(2)
+                            if ref in _DIFY_SYSTEM_NODE_PREFIXES:
+                                continue
+                            if ref not in node_id_set:
+                                mark(consumer, f"txt[{ref}.{key}] -> node不存在")
+                            else:
+                                avail = outputs_by_node.get(ref, set())
+                                if avail and key not in avail:
+                                    mark(consumer,
+                                         f"txt[{ref}.{key}] -> 输出无此key")
+                if isinstance(v, (dict, list)):
+                    walk_text(v, consumer)
+        elif isinstance(o, list):
+            for x in o:
+                if isinstance(x, (dict, list)):
+                    walk_text(x, consumer)
+
+    for n in nodes:
+        nid = n.get("id")
+        if not isinstance(nid, str) or nid in note_ids:
+            continue
+        data = n.get("data") if isinstance(n.get("data"), dict) else {}
+        ntype = (data.get("type") if isinstance(data, dict) and isinstance(data.get("type"), str) else "") or ""
+        # UI 隐藏的内部子节点（iteration-start / loop-start）Dify 前端不列入清单，直接跳过
+        if ntype in _DIFY_CHECKLIST_UI_HIDDEN_TYPES:
+            continue
+        walk_struct(n, "", nid)
+        walk_text(n, nid)
+
+    # B. 端口级未连接
+    missing_handle_count = sum(
+        1 for e in edges if e.get("source_handle") is None or e.get("target_handle") is None
+    )
+    ratio = missing_handle_count / max(1, len(edges))
+    result["handle_missing_ratio"] = ratio
+
+    isolated: dict[str, list[str]] = {}
+    # 统一全员未连接（Dify 行为：老版 DSL 导入新版时，只要 handle 缺失比例高就打全员）
+    if ratio >= 0.5:
+        for n in nodes:
+            nid = n.get("id")
+            if not isinstance(nid, str) or nid in note_ids:
+                continue
+            data = n.get("data") if isinstance(n.get("data"), dict) else {}
+            ntype = (data.get("type") if isinstance(data, dict) and isinstance(data.get("type"), str) else "") or ""
+            if ntype in _DIFY_CHECKLIST_UI_HIDDEN_TYPES:
+                continue  # UI 隐藏的内部子节点不列入清单（与 Dify 前端一致）
+            miss: list[str] = []
+            if ntype not in _DIFY_CHECKLIST_NO_IN_TYPES:
+                miss.append("IN(target)")
+            if ntype not in _DIFY_CHECKLIST_NO_OUT_TYPES:
+                miss.append("OUT(source)")
+            if miss:
+                isolated[nid] = miss
+    else:
+        # 端口级精确覆盖检查：统计 handle
+        src_h: dict[str, set[str]] = {}
+        tgt_h: dict[str, set[str]] = {}
+        for e in edges:
+            s = e.get("source"); t = e.get("target")
+            sh = e.get("source_handle") or "source"
+            th = e.get("target_handle") or "target"
+            if isinstance(s, str): src_h.setdefault(s, set()).add(sh)
+            if isinstance(t, str): tgt_h.setdefault(t, set()).add(th)
+        for n in nodes:
+            nid = n.get("id")
+            if not isinstance(nid, str) or nid in note_ids:
+                continue
+            data = n.get("data") if isinstance(n.get("data"), dict) else {}
+            ntype = (data.get("type") if isinstance(data, dict) and isinstance(data.get("type"), str) else "") or ""
+            if ntype in _DIFY_CHECKLIST_UI_HIDDEN_TYPES:
+                continue
+            req_in: set[str] = set()
+            req_out: set[str] = set()
+            if ntype not in _DIFY_CHECKLIST_NO_IN_TYPES:
+                req_in.add("target")
+            if ntype not in _DIFY_CHECKLIST_NO_OUT_TYPES:
+                req_out.add("source")
+            # if-else / question-classifier 额外分支 ports
+            if ntype in {"if-else", "question-classifier"} and isinstance(data, dict):
+                cases = data.get("cases")
+                conds = data.get("conditions")
+                nbranch = max(2, len(cases) if isinstance(cases, list) else 0,
+                              len(conds) if isinstance(conds, list) else 0)
+                for i in range(nbranch):
+                    req_out.add(f"branch_{i}")
+            miss_in = sorted(req_in - tgt_h.get(nid, set()))
+            miss_out = sorted(req_out - src_h.get(nid, set()))
+            reasons = [f"IN({','.join(miss_in)})"] if miss_in else []
+            if miss_out:
+                reasons.append(f"OUT({','.join(miss_out)})")
+            if reasons:
+                isolated[nid] = reasons
+
+    # 聚合条目（保持 nodes 顺序，与 Dify 一致）
+    items: list[dict[str, Any]] = []
+    for n in nodes:
+        nid = n.get("id")
+        if not isinstance(nid, str) or nid in note_ids:
+            continue
+        data = n.get("data") if isinstance(n.get("data"), dict) else {}
+        ntype = (data.get("type") if isinstance(data, dict) and isinstance(data.get("type"), str) else "") or ""
+        if ntype in _DIFY_CHECKLIST_UI_HIDDEN_TYPES:
+            continue
+        iv = nid in invalid_var
+        il = nid in isolated
+        if not iv and not il:
+            continue
+        items.append({
+            "index": len(items) + 1,
+            "node_title": node_titles.get(nid, nid),
+            "node_id": nid,
+            "invalid_var": iv,
+            "invalid_var_count": len(invalid_var.get(nid, ())),
+            "isolated": il,
+            "isolated_reasons": isolated.get(nid, []),
+            "invalid_var_samples": invalid_var.get(nid, [])[:6],
+        })
+
+    result["items"] = items
+    result["summary"] = {
+        "total_items": len(items),
+        "invalid_var_nodes": len(invalid_var),
+        "isolated_nodes": len(isolated),
+    }
+    return result
+
+
+def print_checklist_report(report: dict[str, Any], *,
+                           out: Any = sys.stderr) -> None:
+    """将 dify_checklist_simulate 的结果以人类可读格式输出（与 Dify UI 清单一致）。"""
+    print(file=out)
+    print("==== Dify 检查清单（模拟器，与平台显示 1:1）====", file=out)
+    print(f"  file               : {report.get('file','?')}", file=out)
+    ratio = float(report.get("handle_missing_ratio", 0.0) or 0.0)
+    summary = report.get("summary", {}) or {}
+    print(f"  edges handle缺失率 : {ratio:.0%}"
+          + ("  -> 触发 全员端口未连接标记" if ratio >= 0.5 else ""), file=out)
+    print(f"  警告条目           : {summary.get('total_items', 0)}", file=out)
+    print(f"    · 无效变量节点数 : {summary.get('invalid_var_nodes', 0)}", file=out)
+    print(f"    · 未连接节点数   : {summary.get('isolated_nodes', 0)}", file=out)
+    print(file=out)
+    for item in report.get("items", []):
+        print(f"{item['index']:>2}. {item['node_title']}", file=out)
+        if item.get("invalid_var"):
+            n = item.get("invalid_var_count", 0)
+            print(f"      ⚠️  无效的变量（{n} 处坏引用）", file=out)
+            for reason in item.get("invalid_var_samples", []):
+                print(f"         · {reason[:120]}", file=out)
+        if item.get("isolated"):
+            reasons = item.get("isolated_reasons") or []
+            msg = "此节点尚未连接到其他节点"
+            if reasons:
+                msg += f" （缺 {', '.join(reasons)}）"
+            print(f"      ⚠️  {msg}", file=out)
+    if not report.get("items"):
+        print("  (与 Dify 平台一致：无警告项）", file=out)
+
+
+def cmd_dsl_validate(args: argparse.Namespace) -> None:
+    """dsl validate / dsl_validate 命令 handler。
+
+    行为（零破坏性，默认行为与之前完全一致）：
+      不加任何 flag           → 跑 L1-L7 基础静态校验（旧行为）
+      --checklist             → 基础校验 + Dify 官方清单 1:1 模拟器（两份都输出）
+      --checklist-only        → 只跑 Dify 清单模拟器（不跑基础校验）
+    """
+    file_path = getattr(args, "file", None)
+    if file_path is None:
+        raise SystemExit("Usage: dify_manage.py dsl validate <working.yml or export.yml>")
+    file_path = Path(file_path).resolve()
+    if not file_path.is_file():
+        app_id = getattr(args, "app_id", None)
+        if app_id:
+            file_path = working_dsl_path(app_id)
+            if not file_path.is_file():
+                raise SystemExit(f"No working.yml at {file_path}. Run: pull --app-id {app_id}")
+        else:
+            raise SystemExit(f"File not found: {file_path}")
+
+    only_checklist = bool(getattr(args, "checklist_only", False))
+    also_checklist = bool(getattr(args, "checklist", False))
+    run_standard = not only_checklist
+    run_checklist = only_checklist or also_checklist
+
+    fmt = (getattr(args, "format", "text") or "text").lower()
+    fail_on_warnings = bool(getattr(args, "fail_on_warnings", False))
+    show_snippets = not bool(getattr(args, "no_snippets", False))
+
+    standard_report = validate_dsl_file(file_path) if run_standard else None
+    checklist_report = dify_checklist_simulate(file_path) if run_checklist else None
+
+    # ===== JSON 模式 =====
+    if fmt == "json":
+        payload: dict[str, Any] = {}
+        if standard_report is not None: payload["standard"] = standard_report
+        if checklist_report is not None: payload["checklist"] = checklist_report
+        out_obj: Any = payload
+        if len(payload) == 1:
+            out_obj = next(iter(payload.values()))
+        print(json.dumps(out_obj, ensure_ascii=False, indent=2))
+    # ===== 文本模式 =====
+    else:
+        if standard_report is not None:
+            # 注意：validate_dsl_file_or_exit 在基础校验错误或 fail_on_warnings 命中时 SystemExit，
+            # 此时 checklist 也不再打印（符合语义：基础校验已 fail）。
+            validate_dsl_file_or_exit(
+                file_path,
+                fail_on_warnings=fail_on_warnings,
+                show_snippets=show_snippets,
+            )
+        if checklist_report is not None:
+            print_checklist_report(checklist_report)
+
+    # ===== 退出码（JSON 模式 or 文本模式未被 SystemExit 命中时才会走到）=====
+    exit_code = 0
+    if standard_report is not None:
+        if not standard_report["ok"]: exit_code = max(exit_code, 1)
+        if fail_on_warnings and standard_report["stats"]["warnings"] > 0:
+            exit_code = max(exit_code, 2)
+    if checklist_report is not None:
+        summary = checklist_report.get("summary") or {}
+        if fail_on_warnings and int(summary.get("total_items", 0) or 0) > 0:
+            # Dify 清单有警告项，且用户显式 fail_on_warnings → exit 3（与基础校验的 1/2 做区分）
+            exit_code = max(exit_code, 3)
+    if exit_code:
+        raise SystemExit(exit_code)
+
+
 def _deploy_diff_warning(app_id: str, deploy_file: Path) -> None:
     remote = find_latest_remote_dsl(app_id)
     if not remote:
@@ -1995,6 +2985,16 @@ def cmd_deploy(args: argparse.Namespace) -> None:
 
     if not getattr(args, "skip_diff_warning", False):
         _deploy_diff_warning(app_id, deploy_file)
+
+    # 优化 5.1：deploy 前自动执行静态 DSL 校验（7 层检查 + working.yml 行级定位）
+    #   避免推送线上后出现「渲染此组件时发生了意外错误」白屏
+    if not getattr(args, "skip_validate", False):
+        validate_dsl_file_or_exit(
+            deploy_file,
+            fail_on_warnings=bool(getattr(args, "validate_fail_on_warnings", False)),
+            show_snippets=not bool(getattr(args, "validate_no_snippets", False)),
+            label=f"(pre-deploy for app={app_id})",
+        )
 
     args.file = deploy_file
     try:
@@ -2218,6 +3218,35 @@ def main() -> None:
     dsl_prune = dsl_sub.add_parser("prune", help="Remove old remote snapshots")
     add_app_target_args(dsl_prune)
     dsl_prune.add_argument("--keep", type=int, default=3, help="Number of remote snapshots to keep")
+    dsl_validate = dsl_sub.add_parser(
+        "validate",
+        help="Static analysis of Dify DSL (YAML structure / nodes / edges / variable refs / syntax)",
+    )
+    dsl_validate.add_argument(
+        "file",
+        nargs="?",
+        default="",
+        help="Path to working.yml or export.yml; omit to use --app-id working.yml",
+    )
+    add_app_target_args(dsl_validate)
+    dsl_validate.add_argument("--format", choices=("text", "json"), default="text")
+    dsl_validate.add_argument(
+        "--fail-on-warnings", action="store_true",
+        help="Exit non-zero on warnings in addition to errors (CI gate)",
+    )
+    dsl_validate.add_argument(
+        "--no-snippets", action="store_true", help="Suppress line-level source snippets in output",
+    )
+    dsl_validate.add_argument(
+        "--checklist", action="store_true",
+        help="After standard validation, also print Dify-official-style checklist (1:1 simulator,"
+             " matches web UI '检查清单' popup for INVALID_VAR / NOT_CONNECTED warnings)",
+    )
+    dsl_validate.add_argument(
+        "--checklist-only", action="store_true",
+        help="Skip standard L1-L7 validation; run ONLY the Dify checklist simulator (fast,"
+             " gives a quick preview of what the Dify web Check List will show).",
+    )
 
     # ⚠️ 维护 checklist：在 cache_sub 下新增/修改子命令后，须同步 3 处（同上 dsl 段落说明）：
     #   cache_sub.add_parser → sub.add_parser("cache_xxx") 别名注册 → handlers["cache_xxx"] 映射
@@ -2281,6 +3310,33 @@ def main() -> None:
     dsl_prune_p = sub.add_parser("dsl_prune", help="(alias) Remove old remote snapshots")
     add_app_target_args(dsl_prune_p)
     dsl_prune_p.add_argument("--keep", type=int, default=3, help="Number of remote snapshots to keep")
+    dsl_validate_p = sub.add_parser(
+        "dsl_validate",
+        help="(alias) Static analysis of Dify DSL (YAML/nodes/edges/vars/syntax)",
+    )
+    dsl_validate_p.add_argument(
+        "file",
+        nargs="?",
+        default="",
+        help="Path to working.yml or export.yml; omit to use --app-id working.yml",
+    )
+    add_app_target_args(dsl_validate_p)
+    dsl_validate_p.add_argument("--format", choices=("text", "json"), default="text")
+    dsl_validate_p.add_argument(
+        "--fail-on-warnings", action="store_true",
+        help="Exit non-zero on warnings in addition to errors (CI gate)",
+    )
+    dsl_validate_p.add_argument(
+        "--no-snippets", action="store_true", help="Suppress line-level source snippets in output",
+    )
+    dsl_validate_p.add_argument(
+        "--checklist", action="store_true",
+        help="After standard validation, also print Dify-official-style checklist (1:1 simulator)",
+    )
+    dsl_validate_p.add_argument(
+        "--checklist-only", action="store_true",
+        help="Skip standard L1-L7 validation; run ONLY the Dify checklist simulator (fast)",
+    )
     # cache 系列别名
     cache_dl_p = sub.add_parser(
         "cache_download", help="(alias) Download URL to .dify/cache/downloads/ (MD5 dedup)"
@@ -2340,6 +3396,21 @@ def main() -> None:
         action="store_true",
         help="Do not warn when working.yml differs from latest remote",
     )
+    deploy_parser.add_argument(
+        "--skip-validate",
+        action="store_true",
+        help="Skip pre-deploy static DSL validation (NOT recommended; see also: dsl validate)",
+    )
+    deploy_parser.add_argument(
+        "--validate-fail-on-warnings",
+        action="store_true",
+        help="Make pre-deploy DSL validation fail on warnings too (strict gate)",
+    )
+    deploy_parser.add_argument(
+        "--validate-no-snippets",
+        action="store_true",
+        help="Do not print line-level source snippets when validation reports issues",
+    )
 
     api_keys_parser = sub.add_parser(
         "api-keys", help="List or create Service API keys for an app (Console session)"
@@ -2397,6 +3468,8 @@ def main() -> None:
             cmd_dsl_reset(args)
         elif args.dsl_command == "prune":
             cmd_dsl_prune(args)
+        elif args.dsl_command == "validate":
+            cmd_dsl_validate(args)
         return
     if args.command == "cache":
         if args.cache_command == "download":
@@ -2433,6 +3506,7 @@ def main() -> None:
         "dsl_refresh": cmd_dsl_refresh,
         "dsl_reset": cmd_dsl_reset,
         "dsl_prune": cmd_dsl_prune,
+        "dsl_validate": cmd_dsl_validate,
         "cache_download": cmd_cache_download,
         "cache_list": cmd_cache_list,
         "cache_clean": cmd_cache_clean,
