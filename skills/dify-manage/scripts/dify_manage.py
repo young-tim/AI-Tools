@@ -21,6 +21,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from http.cookiejar import Cookie, CookieJar
+from http.cookies import SimpleCookie
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
@@ -905,6 +906,20 @@ def load_configuration() -> Path | None:
 
     resolve_dify_paths()
     migrate_legacy_session()
+
+    # 修复根因 B：检测到 OS env 中存在 token，提示用户它们会 OVERRIDE session.json
+    if _OS_TOKEN_KEYS:
+        sorted_keys = sorted(_OS_TOKEN_KEYS)
+        print(
+            "Note: OS env vars " + ", ".join(sorted_keys) + " are set BEFORE this script ran;\n"
+            "      these will OVERRIDE tokens from .dify/session.json and project .env.\n"
+            "      If login/refresh has updated session.json since those exports,\n"
+            "      the fresh session.json tokens will NOT take effect in current shell.\n"
+            "      Tip: run:  unset DIFY_CONSOLE_TOKEN DIFY_CSRF_TOKEN DIFY_REFRESH_TOKEN\n"
+            "      to let .dify/session.json become the single source of truth.",
+            file=sys.stderr,
+        )
+
     return path
 
 
@@ -986,6 +1001,41 @@ class DifySession:
             rest={},
             rfc2109=False,
         )
+
+    def _parse_set_cookies_into_jar(self, set_cookie_headers: list[str]) -> None:
+        """
+        手动解析响应头的 Set-Cookie 列表并写入 jar。
+
+        修复根因 A：Dify 服务器下发的 __Host- 前缀 Cookie 通常带 Domain 属性，
+        违反 RFC 中 __Host- 必须为 host-only 的要求，导致 Python urllib 的
+        DefaultCookiePolicy.return_ok() 直接丢弃。通过此方法手动写入 jar，
+        domain 固定为空字符串（host-only），绕过 urllib policy 限制。
+
+        只解析并写入我们关心的 token cookie：access_token / csrf_token / refresh_token。
+        """
+        if not set_cookie_headers:
+            return
+        sc = SimpleCookie()
+        for header in set_cookie_headers:
+            try:
+                sc.load(header)
+            except Exception:
+                # 某个 Set-Cookie 行解析失败不影响其它
+                continue
+        for canonical in ("access_token", "csrf_token", "refresh_token"):
+            # 优先匹配 __Host- 前缀版本，兼容不带前缀的旧版
+            target_name = None
+            target_value = ""
+            for variant in (f"__Host-{canonical}", canonical):
+                if variant in sc and sc[variant].value:
+                    target_name = variant
+                    target_value = sc[variant].value
+                    break
+            if not target_name or not target_value:
+                continue
+            host_prefix = target_name.startswith("__Host-")
+            # 用统一的 _make_cookie 构造（host_prefix=True 时 domain 为空）
+            self.jar.set_cookie(self._make_cookie("", target_name, target_value, host_prefix=host_prefix))
 
     def _find_cookie(self, canonical_name: str) -> Cookie | None:
         """按规范名查找 cookie，自动尝试 __Host- 前缀和无前缀两种变体。"""
@@ -1093,8 +1143,35 @@ class DifySession:
             data["last_refresh_at"] = now
             data["last_event"] = "login"
         elif event == "refresh":
-            data["last_refresh_at"] = now
-            data["last_event"] = "refresh"
+            # 修复根因 D：refresh 事件前后 token 指纹未变更 + access 已过期 → 不更新 last_refresh_at
+            # 避免出现「last_refresh_at 是新的但 access_token_expires_at 还是老的」假象
+            old_access = (existing.get("access_token") or "").strip()
+            old_access_fp = old_access[:16] if old_access else ""
+            new_access_fp = access[:16] if access else ""
+            is_expired = False
+            try:
+                payload_b64 = access.split(".")[1]
+                payload_b64 += "=" * (-len(payload_b64) % 4)
+                payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+                exp = int(payload.get("exp", 0))
+                if exp and time.time() > exp - 300:
+                    is_expired = True
+            except Exception:
+                is_expired = False
+            token_unchanged = bool(old_access_fp) and old_access_fp == new_access_fp
+            if token_unchanged and is_expired:
+                print(
+                    "WARN: persist_session event=refresh but access_token unchanged and expired. "
+                    "Set-Cookie from server was likely dropped by cookie policy. "
+                    "Keeping old last_refresh_at / last_event metadata.",
+                    file=sys.stderr,
+                )
+                # 保留 existing 中 last_refresh_at（若有），并标记 last_event 为特殊值便于排查
+                data["last_refresh_at"] = existing.get("last_refresh_at", now)
+                data["last_event"] = "refresh_token_unchanged_skipped"
+            else:
+                data["last_refresh_at"] = now
+                data["last_event"] = "refresh"
         else:
             data["last_event"] = event
 
@@ -1122,7 +1199,11 @@ class DifySession:
         )
         try:
             with self.opener.open(req, timeout=60) as resp:
+                # 修复根因 A：Dify Set-Cookie 带 Domain，urllib policy 丢弃 __Host- cookie
+                # 手动解析 Set-Cookie 头并写入 jar，domain 强制为空
+                set_cookies = resp.headers.get_all("Set-Cookie") or []
                 resp.read()
+            self._parse_set_cookies_into_jar(set_cookies)
         except urllib.error.HTTPError as exc:
             raise SystemExit(f"Login failed ({exc.code}): {exc.read().decode()}") from exc
 
@@ -1133,10 +1214,26 @@ class DifySession:
         return path
 
     def refresh(self) -> Path:
+        """执行 refresh 并持久化；失败则抛 SystemExit（兼容旧行为）。"""
+        ok = self.refresh_safe()
+        if not ok:
+            raise SystemExit("Refresh failed (see stderr for details)")
+        # refresh_safe 内部已 persist_session，返回最后写入的 session 路径
+        dify_dir = ensure_dify_dir()
+        return (dify_dir / SESSION_FILENAME).resolve()
+
+    def refresh_safe(self) -> bool:
+        """
+        安全版本的 refresh：返回 True/False 而非抛 SystemExit。
+
+        作为 ensure_session 3 级 fallback 链的第二步（refresh → login → exit）。
+        失败时在 stderr 打印原因，供调试。
+        """
         refresh_cookie = self._find_cookie("refresh_token")
         refresh_val = refresh_cookie.value if refresh_cookie else os.environ.get("DIFY_REFRESH_TOKEN", "")
         if not refresh_val:
-            raise SystemExit("No refresh_token; run login or set DIFY_REFRESH_TOKEN")
+            print("WARN: refresh_safe skipped: no refresh_token available", file=sys.stderr)
+            return False
         refresh_cookie_name = refresh_cookie.name if refresh_cookie else "__Host-refresh_token"
         url = f"{self.console_url}/console/api/refresh-token"
         req = urllib.request.Request(
@@ -1147,46 +1244,105 @@ class DifySession:
         )
         try:
             with self.opener.open(req, timeout=60) as resp:
+                # 修复根因 A：同 login，手动解析 Set-Cookie
+                set_cookies = resp.headers.get_all("Set-Cookie") or []
                 resp.read()
+            self._parse_set_cookies_into_jar(set_cookies)
         except urllib.error.HTTPError as exc:
-            raise SystemExit(f"Refresh failed ({exc.code}): {exc.read().decode()}") from exc
-        path = self.persist_session("refresh")
-        print(f"Session saved to {path}", file=sys.stderr)
-        return path
+            try:
+                err_body = exc.read().decode(errors="replace")
+            except Exception:
+                err_body = f"<unable to read HTTPError body: {exc.reason!r}>"
+            print(f"WARN: refresh_safe failed HTTP {exc.code}: {err_body}", file=sys.stderr)
+            return False
+        except Exception as exc:  # noqa: BLE001
+            print(f"WARN: refresh_safe unexpected error: {exc}", file=sys.stderr)
+            return False
+        if not self.cookie_value("access_token"):
+            print("WARN: refresh_safe OK but access_token cookie still missing (Set-Cookie dropped?)", file=sys.stderr)
+            return False
+        try:
+            self.persist_session("refresh")
+        except SystemExit as exc:
+            print(f"WARN: refresh_safe persist_session failed: {exc}", file=sys.stderr)
+            return False
+        return True
 
     def ensure_session(self) -> None:
+        """
+        3 级 fallback 链的鉴权会话保证：
+          Step 1: 有 access_token 且 JWT exp 未达 5 分钟阈值 → OK
+          Step 2: 过期 or 测试请求 401 → refresh_safe()
+          Step 3: refresh 失败 → 有 DIFY_EMAIL+PASSWORD 就 login
+          Step 4: 全失败 → SystemExit 给用户 3 条恢复指引
+
+        修复根因 C：旧版 ensure_session 在 refresh() 抛 SystemExit 后卡死，
+        不会自动降级到 email/password login。
+        """
         token = self.cookie_value("access_token") or os.environ.get("DIFY_CONSOLE_TOKEN", "")
+        email = os.environ.get("DIFY_EMAIL", "")
+        password = os.environ.get("DIFY_PASSWORD", "")
+
+        # ---------------- Step 1: 无 token → 直接尝试 login 或 报错 ----------------
         if not token:
-            email = os.environ.get("DIFY_EMAIL", "")
-            password = os.environ.get("DIFY_PASSWORD", "")
             if email and password:
                 self.login(email, password)
                 return
             raise SystemExit(
                 "No console session. Options:\n"
-                "  - login (DIFY_EMAIL + DIFY_PASSWORD in .env)\n"
-                "  - Put tokens in .dify/session.json (login/refresh creates it)\n"
-                "  - Put DIFY_CONSOLE_TOKEN + DIFY_CSRF_TOKEN in .env (SSO/manual)"
+                "  1) python3 dify_manage.py login  (interactive)\n"
+                "  2) Fill DIFY_EMAIL + DIFY_PASSWORD in project .env (auto login)\n"
+                "  3) Put DIFY_CONSOLE_TOKEN + DIFY_CSRF_TOKEN in .env (SSO/manual cookies)"
             )
 
+        # ---------------- Step 2: JWT exp 判断是否需要 refresh ----------------
+        need_refresh = False
         try:
             payload_b64 = token.split(".")[1]
             payload_b64 += "=" * (-len(payload_b64) % 4)
             payload = json.loads(base64.urlsafe_b64decode(payload_b64))
             exp = int(payload.get("exp", 0))
             if exp and time.time() > exp - 300:
-                if self.cookie_value("refresh_token") or os.environ.get("DIFY_REFRESH_TOKEN"):
-                    self.refresh()
-                    return
+                need_refresh = True
         except Exception:
+            # JWT 解析异常 → 发一次测试请求确认 401 再决定
             status, body = self.request("GET", "/console/api/apps?page=1&limit=1")
             if status == 401:
-                if os.environ.get("DIFY_REFRESH_TOKEN") or self.cookie_value("refresh_token"):
-                    self.refresh()
-                elif os.environ.get("DIFY_EMAIL") and os.environ.get("DIFY_PASSWORD"):
-                    self.login(os.environ["DIFY_EMAIL"], os.environ["DIFY_PASSWORD"])
-                else:
-                    raise SystemExit(f"Session invalid ({status}): {body}") from None
+                need_refresh = True
+            else:
+                # 测试请求成功 → token 实际可用
+                return
+
+        if not need_refresh:
+            return
+
+        # ---------------- Step 2 fallback: 尝试 refresh_safe ----------------
+        has_refresh = bool(self.cookie_value("refresh_token") or os.environ.get("DIFY_REFRESH_TOKEN"))
+        refresh_ok = False
+        if has_refresh:
+            refresh_ok = self.refresh_safe()
+
+        if refresh_ok:
+            return
+
+        # ---------------- Step 3 fallback: refresh 失败 → 尝试 email/password login ----------------
+        if email and password:
+            try:
+                self.login(email, password)
+                return
+            except SystemExit as exc:
+                print(f"WARN: auto login via DIFY_EMAIL/DIFY_PASSWORD also failed: {exc}", file=sys.stderr)
+
+        # ---------------- Step 4: 全失败 → SystemExit 带恢复指引 ----------------
+        raise SystemExit(
+            "Automatic token refresh/login failed. Next steps:\n"
+            "  1) Run:  python3 dify_manage.py login\n"
+            "  2) Or fill DIFY_EMAIL + DIFY_PASSWORD in project .env\n"
+            "  3) Or export fresh DIFY_CONSOLE_TOKEN + DIFY_CSRF_TOKEN from browser DevTools\n"
+            "  Tip: if DIFY_*_TOKEN are OS-exported in shell, run:\n"
+            "       unset DIFY_CONSOLE_TOKEN DIFY_CSRF_TOKEN DIFY_REFRESH_TOKEN\n"
+            "       to let session.json / .env take effect."
+        )
 
 
 def require_console_url() -> str:
@@ -1758,9 +1914,9 @@ def _deploy_diff_warning(app_id: str, deploy_file: Path) -> None:
         print(diff, file=sys.stderr)
 
 
-def cmd_import(args: argparse.Namespace) -> None:
+def cmd_import(args: argparse.Namespace, *, session: DifySession | None = None) -> None:
     create = getattr(args, "create", False)
-    session = DifySession(require_console_url())
+    session = session or DifySession(require_console_url())
     app_id = resolve_app_id(
         session,
         app_id=args.app_id,
@@ -1794,8 +1950,9 @@ def cmd_import(args: argparse.Namespace) -> None:
         print(json.dumps(body2, ensure_ascii=False, indent=2))
 
 
-def cmd_publish(args: argparse.Namespace) -> None:
-    session = DifySession(require_console_url())
+
+def cmd_publish(args: argparse.Namespace, *, session: DifySession | None = None) -> None:
+    session = session or DifySession(require_console_url())
     app_id = resolve_app_id(
         session, app_id=args.app_id, app_name=args.app_name, required=True
     )
@@ -1806,6 +1963,17 @@ def cmd_publish(args: argparse.Namespace) -> None:
     if status >= 400:
         raise SystemExit(f"Publish failed ({status}): {body}")
     print("Published successfully")
+
+
+_DEPLOY_RECOVERY_HINT = (
+    "\n\n  Automatic token refresh failed during deploy. Next steps:\n"
+    "  1. Run:  python3 dify_manage.py login\n"
+    "  2. Or fill DIFY_EMAIL + DIFY_PASSWORD in project .env\n"
+    "  3. Or export fresh DIFY_CONSOLE_TOKEN + DIFY_CSRF_TOKEN from browser DevTools\n"
+    "  Tip: if DIFY_*_TOKEN are OS-exported in shell, run:\n"
+    "       unset DIFY_CONSOLE_TOKEN DIFY_CSRF_TOKEN DIFY_REFRESH_TOKEN\n"
+    "       to let .dify/session.json become the single source of truth."
+)
 
 
 def cmd_deploy(args: argparse.Namespace) -> None:
@@ -1829,8 +1997,19 @@ def cmd_deploy(args: argparse.Namespace) -> None:
         _deploy_diff_warning(app_id, deploy_file)
 
     args.file = deploy_file
-    cmd_import(args)
-    cmd_publish(args)
+    try:
+        # 优化 4.5：复用同一个 session 实例，让 ensure_session 的多级 fallback
+        # 跨 import/publish 两步保持上下文（避免 refresh/login 后又被新 session 覆盖）
+        cmd_import(args, session=session)
+        cmd_publish(args, session=session)
+    except SystemExit as exc:
+        msg = str(exc)
+        # 优化 4.6：检测 refresh / login / 401 相关错误，附加恢复引导
+        if any(token in msg for token in ("Refresh failed", "refresh failed", "Invalid refresh token",
+                                           "No console session", "Session invalid", "401",
+                                           "Automatic token refresh")):
+            raise SystemExit(msg + _DEPLOY_RECOVERY_HINT) from exc
+        raise
 
     if deploy_file.is_file():
         update_manifest_app(
