@@ -2235,6 +2235,22 @@ def validate_dsl_file(path: Path | str) -> dict[str, Any]:
                           f"if-else node '{nid}' missing non-empty data.cases[] array "
                           "(experience 1114983: if-else uses cases[] not legacy 'condition')",
                           line=_line_of(data), node_id=nid)
+            else:
+                for idx, case in enumerate(cases):
+                    if not isinstance(case, dict):
+                        continue
+                    cond = case.get("condition")
+                    if not isinstance(cond, dict):
+                        continue
+                    op = cond.get("operator")
+                    val = cond.get("value")
+                    if isinstance(op, str) and op == "in":
+                        if not isinstance(val, list):
+                            add_issue("error", "IFELSE_IN_OPERATOR_VALUE_NOT_LIST",
+                                      f"if-else node '{nid}' case[{idx}] uses 'in' operator but value is {type(val).__name__}, "
+                                      "must be YAML list (e.g., value: [item1, item2]), not JSON string (e.g., value: '[1,2,3]'). "
+                                      "Dify backend silently treats string as single-item list, causing unexpected behavior.",
+                                      line=_line_of(case), node_id=nid)
 
     # iteration + iteration-start 父子关系（经验 1114983）
     iter_nodes = [n for n in nodes_raw if isinstance(n, dict)

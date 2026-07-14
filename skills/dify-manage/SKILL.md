@@ -104,6 +104,7 @@ run --api-key app-xxx --fixtures .dify/fixtures/<id>/smoke.json
 - 改前 `pull`；只 patch 目标节点
 - 禁止旧 YAML 整包覆盖
 - deploy 前先跑 `dsl_diff`；注意 `default` / `file_upload` 字段变更风险
+- if-else 节点使用 `in` 操作符时，value **必须是 YAML list**（如 `value: [item1, item2]`），**不能是 JSON 字符串**（如 `value: '[1,2,3]'`）。Dify 后端会将字符串当作单元素列表处理，导致条件判断异常
 
 ## Agent 清单
 
