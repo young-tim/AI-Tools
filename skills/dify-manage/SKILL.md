@@ -11,7 +11,7 @@ description: >-
 
 ## CLI
 
-**SKILL_ROOT** = 本 `SKILL.md` 所在目录（安装后通常在 `~/.cursor/skills/dify-manage/`）。
+**SKILL_ROOT** = 本 `SKILL.md` 所在目录（安装后通常在 `~/.agents/skills/dify-manage/`）。
 
 ```bash
 # 基命令（后续命令均接在此后）
