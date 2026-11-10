@@ -1,0 +1,42 @@
+{
+  "idea": {
+    "label": "验证新想法",
+    "required": [{"file": "artifacts/idea-validation.md", "template": "idea-validation.md"}],
+    "conditional": []
+  },
+  "needs": {
+    "label": "发现未满足需求",
+    "required": [{"file": "artifacts/needs-map.md", "template": "needs-map.md"}],
+    "conditional": [{"file": "artifacts/odi-results.csv", "condition": "有适配目标人群的真实重要度与满意度调查数据"}]
+  },
+  "trends": {
+    "label": "从趋势寻找机会",
+    "required": [{"file": "artifacts/opportunity-map.md", "template": "opportunity-map.md"}],
+    "conditional": []
+  },
+  "technology": {
+    "label": "判断技术与成本变化",
+    "required": [{"file": "artifacts/value-chain.md", "template": "value-chain.md"}],
+    "conditional": [{"file": "artifacts/economics-model.csv", "condition": "有可追溯成本输入或明确标记的可检验估算"}]
+  },
+  "entry": {
+    "label": "跨地区或跨渠道评估",
+    "required": [{"file": "artifacts/entry-assessment.md", "template": "entry-assessment.md"}],
+    "conditional": []
+  },
+  "comparison": {
+    "label": "比较多个业务方向",
+    "required": [{"file": "artifacts/opportunity-comparison.csv", "template": "opportunity-comparison.csv"}],
+    "conditional": []
+  },
+  "diagnosis": {
+    "label": "诊断已有业务问题",
+    "required": [{"file": "artifacts/diagnosis.md", "template": "diagnosis.md"}],
+    "conditional": []
+  },
+  "pilot": {
+    "label": "复盘试点并决定下一步",
+    "required": [{"file": "artifacts/pilot-review.md", "template": "pilot-review.md"}],
+    "conditional": []
+  }
+}

@@ -147,6 +147,7 @@ npx skills list
 | [ppt-smith](./skills/ppt-smith/)     | AI 演示稿编译器：基于 officecli，直接输出 PPTX-native、高设计感、内容有效、可编辑的客户交付型 PPT（officecli 版本） |
 | [dify-manage](./skills/dify-manage/) | Dify DSL 拉取/编辑/**上线前静态校验 + Dify 官方检查清单 1:1 模拟器**/部署（deploy 自动带前置 gates + **publish 后回拉远端内容完整性校验、默认自动重试，兜底后端静默丢边**）；文件缓存与上传 |
 | [research-report-generator](./skills/research-report-generator/) | 调研报告生成器：基于视频/音频/逐字稿/观察笔记等调研素材生成结构化调研报告（多模态识别优先、抽帧降级），预置四种调研方法模板，支持本地 Markdown/Word、钉钉文档、腾讯文档输出 |
+| [business-opportunity-research](./skills/business-opportunity-research/) | 商业机会研究：一句话启动，按场景动态选择方法、执行证据门禁并迭代，输出分析报告与行动计划，保存到当前目录 `.bor/<研究主题>/` |
 
 
 ## 仓库结构

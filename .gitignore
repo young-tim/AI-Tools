@@ -8,6 +8,7 @@
 .decksmith/**
 .dify/**
 .pptsmith/**
+.bor/
 **/.decksmith/**
 **/node_modules/
 .pnpm-store/
